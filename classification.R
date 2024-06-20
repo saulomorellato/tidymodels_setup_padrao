@@ -133,28 +133,30 @@ model_svm<- svm_rbf(cost = tune(),
   set_mode("classification")
 
 
-callback_list <- list(keras::callback_early_stopping(monitor = "val_loss", 
-                                                     min_delta = 1e-06, 
-                                                     patience = 10))
-
-model_mlp <- mlp(epochs = 200,
-                 hidden_units = tune(),
-                 dropout = tune(),
-                 activation = "relu") %>% 
-  set_engine("keras",
-             verbose = 1,
-             seeds = 0, 
-             #metrics = c("accuracy" ), 
-             #validation_split = 1/6,
-             callbacks = callback_list) %>% 
-  set_mode("classification")
-
-# model_mlp <- mlp(epochs = 30,
+# callback_list <- list(keras::callback_early_stopping(monitor = "val_loss", 
+#                                                      min_delta = 0, 
+#                                                      patience = 10))
+# 
+# model_mlp <- mlp(epochs = 200,
 #                  hidden_units = tune(),
 #                  dropout = tune(),
-#                  learn_rate = tune()) %>% 
-#   set_engine("brulle") %>% 
+#                  activation = "relu") %>% 
+#   set_engine("keras",
+#              verbose = 1,
+#              seeds = 0, 
+#              #metrics = c("accuracy" ), 
+#              #validation_split = 1/6,
+#              callbacks = callback_list) %>% 
 #   set_mode("classification")
+
+
+model_mlp <- mlp(epochs = 30,
+                 hidden_units = tune(),
+                 dropout = tune(),
+                 learn_rate = tune(),
+                 activation = "relu") %>%
+  set_engine("brulee") %>%
+  set_mode("classification")
 
 
 model_tbn <- tabnet(epochs = 200,
@@ -363,8 +365,8 @@ tune_mlp<- tune_bayes(wf_mlp,
                                               seed=0),
                       metrics = metric_set(roc_auc),
                       param_info = parameters(hidden_units(range=c(8,1024)),
-                                              dropout(range=c(0.2,0.8)))#,
-                                              #learn_rate(range=c(-10,0)),
+                                              dropout(range=c(0.2,0.8)),
+                                              learn_rate(range=c(-10,0)))#,
                                               #threshold(range=c(0.7,1)),
                                               #freq_cut(range=c(5,50)))
 )
