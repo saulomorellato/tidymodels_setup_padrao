@@ -240,7 +240,7 @@ tune_knn<- tune_bayes(wf_knn,
                                               #freq_cut(range=c(5,50)))
 )
 toc()
-# 182.93 sec elapsed (~ 3 min)
+# 223.33 sec elapsed (~ 4 min)
 
 
 
@@ -261,7 +261,7 @@ tune_pls<- tune_bayes(wf_pls,
                                               #freq_cut(range=c(5,50)))
 )
 toc()
-# 49.35 sec elapsed (~ 1 min)
+# 101.03 sec elapsed (~ 2 min)
 
 
 
@@ -371,7 +371,7 @@ tune_mlp<- tune_bayes(wf_mlp,
                                               #freq_cut(range=c(5,50)))
 )
 toc()
-# 1818.7 sec elapsed (~ 30 min)
+# 778.31 sec elapsed (~ 13 min)
 
 
 
@@ -531,6 +531,7 @@ stack_ensemble_trained
 
 ##### FINALIZANDO MODELOS INDIVIDUAIS #####
 
+wf_knn_trained<- wf_knn %>% finalize_workflow(select_best(tune_knn,metric="roc_auc")) %>% fit(df_train)
 wf_pls_trained<- wf_pls %>% finalize_workflow(select_best(tune_pls,metric="roc_auc")) %>% fit(df_train)
 wf_net_trained<- wf_net %>% finalize_workflow(select_best(tune_net,metric="roc_auc")) %>% fit(df_train)
 wf_rfo_trained<- wf_rfo %>% finalize_workflow(select_best(tune_rfo,metric="roc_auc")) %>% fit(df_train)
