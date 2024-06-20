@@ -140,7 +140,7 @@ callback_list <- list(keras::callback_early_stopping(monitor = "val_loss",
 model_mlp <- mlp(epochs = 200,
                  hidden_units = tune(),
                  dropout = tune(),
-                 learn_rate = tune()) %>% 
+                 activation = "relu") %>% 
   set_engine("keras",
              verbose = 1,
              seeds = 0, 
@@ -148,6 +148,13 @@ model_mlp <- mlp(epochs = 200,
              #validation_split = 1/6,
              callbacks = callback_list) %>% 
   set_mode("classification")
+
+# model_mlp <- mlp(epochs = 30,
+#                  hidden_units = tune(),
+#                  dropout = tune(),
+#                  learn_rate = tune()) %>% 
+#   set_engine("brulle") %>% 
+#   set_mode("classification")
 
 
 model_tbn <- tabnet(epochs = 200,
@@ -215,23 +222,24 @@ tune_knn<- tune_bayes(wf_knn,
                       metrics = metric_set(roc_auc),
                       param_info = parameters(neighbors(range=c(1,min(200,trunc(0.25*nrow(df_train))))),
                                               dist_power(range=c(1,2)),
-                                              weight_func(c("rectangular",
-                                                            "triangular",
-                                                            "epanechnikov",
-                                                            "biweight",
-                                                            "triweight",
-                                                            "cos",
-                                                            "inv",
-                                                            "gaussian",
-                                                            "rank",
-                                                            "optimal")),
-                                              num_comp(range=c(1,min(100,trunc(0.25*ncol(df_train))))),
+                                              weight_func(c("epanechnikov",
+                                                            "rectangular",
+                                                            "triangular")),#,
+                                                            #"gaussian",
+                                                            #"cos",
+                                                            #"rank",
+                                                            #"optimal",
+                                                            #"biweight",
+                                                            #"triweight",
+                                                            #"inv",)),
+                                              num_comp(range=c(1,min(100,trunc(0.75*ncol(df_train))))),
                                               predictor_prop(range=c(0,1)))#,
                                               #threshold(range=c(0.7,1)),
                                               #freq_cut(range=c(5,50)))
 )
 toc()
-# 3397.06 sec elapsed (~ 56 min)
+# 182.93 sec elapsed (~ 3 min)
+
 
 
 
@@ -245,13 +253,13 @@ tune_pls<- tune_bayes(wf_pls,
                                               save_workflow=TRUE,
                                               seed=0),
                       metrics = metric_set(roc_auc),
-                      param_info = parameters(num_comp(range=c(1,50)),
+                      param_info = parameters(num_comp(range=c(1,min(100,trunc(0.75*ncol(df_train))))),
                                               predictor_prop(range=c(0,1)))#,
                                               #threshold(range=c(0.7,1)),
                                               #freq_cut(range=c(5,50)))
 )
 toc()
-# 3397.06 sec elapsed (~ 56 min)
+# 49.35 sec elapsed (~ 1 min)
 
 
 
@@ -271,7 +279,7 @@ tune_net<- tune_bayes(wf_net,
                                               #freq_cut(range=c(5,50)))
 )
 toc()
-# 1381.67 sec elapsed (~ 23 min)
+# 31.97 sec elapsed (~ 0.5 min)
 
 
 
@@ -292,7 +300,7 @@ tune_rfo<- tune_bayes(wf_rfo,
                                               #freq_cut(range=c(5,50)))
 )
 toc()
-# 1685.04 sec elapsed (~ 28 min)
+# 405.44 sec elapsed (~ 7 min)
 
 
 
@@ -315,7 +323,7 @@ tune_xgb<- tune_bayes(wf_xgb,
                                               #freq_cut(range=c(5,50)))
 )
 toc()
-# 1607.05 sec elapsed (~ 26 min)
+# 906.62 sec elapsed (~ 15 min)
 
 
 
@@ -332,12 +340,14 @@ tune_svm<- tune_bayes(wf_svm,
                       metrics = metric_set(roc_auc),
                       param_info = parameters(cost(range=c(-10,5)),
                                               svm_margin(range=c(0,0.5)),
-                                              rbf_sigma(range=c(-10,5)))#,
+                                              rbf_sigma(range=c(-10,5)),
+                                              num_comp(range=c(1,min(100,trunc(0.75*ncol(df_train))))),
+                                              predictor_prop(range=c(0,1)))#,
                                               #threshold(range=c(0.7,1)),
                                               #freq_cut(range=c(5,50)))
 )
 toc()
-# 1460.41 sec elapsed (~ 24 min)
+# 108.87 sec elapsed (~ 2 min)
 
 
 
@@ -353,8 +363,8 @@ tune_mlp<- tune_bayes(wf_mlp,
                                               seed=0),
                       metrics = metric_set(roc_auc),
                       param_info = parameters(hidden_units(range=c(8,1024)),
-                                              dropout(range=c(0.2,0.8)),
-                                              learn_rate(range=c(-10,0)))#,
+                                              dropout(range=c(0.2,0.8)))#,
+                                              #learn_rate(range=c(-10,0)),
                                               #threshold(range=c(0.7,1)),
                                               #freq_cut(range=c(5,50)))
 )
