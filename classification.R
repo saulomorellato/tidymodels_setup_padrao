@@ -120,7 +120,8 @@ model_xgb<- boost_tree(mtry = tune(),
                        trees = 10000,
                        min_n = tune(),
                        loss_reduction = tune(),
-                       learn_rate = tune()) %>%
+                       learn_rate = tune(),
+                       stop_iter = 50) %>%
   set_engine("xgboost") %>%
   set_mode("classification")
 
@@ -132,11 +133,20 @@ model_svm<- svm_rbf(cost = tune(),
   set_mode("classification")
 
 
+callback_list <- list(keras::callback_early_stopping(monitor = "val_loss", 
+                                                     min_delta = 1e-06, 
+                                                     patience = 10))
+
 model_mlp <- mlp(epochs = 200,
                  hidden_units = tune(),
                  dropout = tune(),
                  learn_rate = tune()) %>% 
-  set_engine("keras") %>% 
+  set_engine("keras",
+             verbose = 1,
+             seeds = 0, 
+             #metrics = c("accuracy" ), 
+             #validation_split = 1/6,
+             callbacks = callback_list) %>% 
   set_mode("classification")
 
 
@@ -145,7 +155,9 @@ model_tbn <- tabnet(epochs = 200,
                     learn_rate = tune(),
                     decision_width = tune(),
                     attention_width = tune(),
-                    num_steps = tune()) %>% 
+                    num_steps = tune(),
+                    early_stopping_tolerance = 0.001,
+                    early_stopping_patience = 10) %>% 
   set_engine("torch") %>% 
   set_mode("classification")
 
@@ -175,7 +187,7 @@ wf_xgb<- workflow() %>%
   add_model(model_xgb)
 
 wf_svm<- workflow() %>%
-  add_recipe(receita) %>%
+  add_recipe(receita_pls) %>%
   add_model(model_svm)
 
 wf_mlp<- workflow() %>%
@@ -191,6 +203,38 @@ wf_tbn<- workflow() %>%
 
 ##### TUNAGEM DE HIPERPARAMETROS - BAYESIAN SEARCH #####
 
+## KNN - K NEAREST NEIGHBORS
+
+tic()
+tune_knn<- tune_bayes(wf_knn,
+                      resamples = folds,
+                      initial = 10,
+                      control = control_bayes(save_pred=TRUE,
+                                              save_workflow=TRUE,
+                                              seed=0),
+                      metrics = metric_set(roc_auc),
+                      param_info = parameters(neighbors(range=c(1,min(200,trunc(0.25*nrow(df_train))))),
+                                              dist_power(range=c(1,2)),
+                                              weight_func(c("rectangular",
+                                                            "triangular",
+                                                            "epanechnikov",
+                                                            "biweight",
+                                                            "triweight",
+                                                            "cos",
+                                                            "inv",
+                                                            "gaussian",
+                                                            "rank",
+                                                            "optimal")),
+                                              num_comp(range=c(1,min(100,trunc(0.25*ncol(df_train))))),
+                                              predictor_prop(range=c(0,1)))#,
+                                              #threshold(range=c(0.7,1)),
+                                              #freq_cut(range=c(5,50)))
+)
+toc()
+# 3397.06 sec elapsed (~ 56 min)
+
+
+
 ## PLS - PARTIAL LEAST SQUARE
 
 tic()
@@ -202,9 +246,9 @@ tune_pls<- tune_bayes(wf_pls,
                                               seed=0),
                       metrics = metric_set(roc_auc),
                       param_info = parameters(num_comp(range=c(1,50)),
-                                              predictor_prop(range=c(0,1)),
-                                              threshold(range=c(0.8,1)),
-                                              freq_cut(range=c(5,50)))
+                                              predictor_prop(range=c(0,1)))#,
+                                              #threshold(range=c(0.7,1)),
+                                              #freq_cut(range=c(5,50)))
 )
 toc()
 # 3397.06 sec elapsed (~ 56 min)
@@ -222,9 +266,9 @@ tune_net<- tune_bayes(wf_net,
                                               seed=0),
                       metrics = metric_set(roc_auc),
                       param_info = parameters(penalty(range=c(-10,5)),
-                                              mixture(range=c(0,1)),
-                                              threshold(range=c(0.8,1)),
-                                              freq_cut(range=c(5,50)))
+                                              mixture(range=c(0,1)))#,
+                                              #threshold(range=c(0.7,1)),
+                                              #freq_cut(range=c(5,50)))
 )
 toc()
 # 1381.67 sec elapsed (~ 23 min)
@@ -242,10 +286,10 @@ tune_rfo<- tune_bayes(wf_rfo,
                                               save_workflow=TRUE,
                                               seed=0),
                       metrics = metric_set(roc_auc),
-                      param_info = parameters(mtry(range=c(1,65)),
-                                              min_n(range=c(1,100)),
-                                              threshold(range=c(0.8,1)),
-                                              freq_cut(range=c(5,50)))
+                      param_info = parameters(mtry(range=c(1,trunc(0.9*ncol(df_train)))),
+                                              min_n(range=c(1,min(200,trunc(0.25*nrow(df_train))))))#,
+                                              #threshold(range=c(0.7,1)),
+                                              #freq_cut(range=c(5,50)))
 )
 toc()
 # 1685.04 sec elapsed (~ 28 min)
@@ -263,12 +307,12 @@ tune_xgb<- tune_bayes(wf_xgb,
                                               save_workflow=TRUE,
                                               seed=0),
                       metrics = metric_set(roc_auc),
-                      param_info = parameters(mtry(range=c(1,65)),
-                                              min_n(range=c(1,100)),
+                      param_info = parameters(mtry(range=c(1,trunc(0.9*ncol(df_train)))),
+                                              min_n(range=c(1,min(200,trunc(0.25*nrow(df_train))))),
                                               loss_reduction(range=c(-10,5)),
-                                              learn_rate(range=c(-10,0)),
-                                              threshold(range=c(0.8,1)),
-                                              freq_cut(range=c(5,50)))
+                                              learn_rate(range=c(-10,0)))#,
+                                              #threshold(range=c(0.7,1)),
+                                              #freq_cut(range=c(5,50)))
 )
 toc()
 # 1607.05 sec elapsed (~ 26 min)
@@ -288,9 +332,9 @@ tune_svm<- tune_bayes(wf_svm,
                       metrics = metric_set(roc_auc),
                       param_info = parameters(cost(range=c(-10,5)),
                                               svm_margin(range=c(0,0.5)),
-                                              rbf_sigma(range=c(-10,5)),
-                                              threshold(range=c(0.8,1)),
-                                              freq_cut(range=c(5,50)))
+                                              rbf_sigma(range=c(-10,5)))#,
+                                              #threshold(range=c(0.7,1)),
+                                              #freq_cut(range=c(5,50)))
 )
 toc()
 # 1460.41 sec elapsed (~ 24 min)
@@ -310,9 +354,9 @@ tune_mlp<- tune_bayes(wf_mlp,
                       metrics = metric_set(roc_auc),
                       param_info = parameters(hidden_units(range=c(8,1024)),
                                               dropout(range=c(0.2,0.8)),
-                                              learn_rate(range=c(-10,0)),
-                                              threshold(range=c(0.8,1)),
-                                              freq_cut(range=c(5,50)))
+                                              learn_rate(range=c(-10,0)))#,
+                                              #threshold(range=c(0.7,1)),
+                                              #freq_cut(range=c(5,50)))
 )
 toc()
 # 1818.7 sec elapsed (~ 30 min)
@@ -334,9 +378,9 @@ tune_tbn<- tune_bayes(wf_tbn,
                                               learn_rate(range=c(-10,0)),
                                               decision_width(range=c(4,80)),
                                               attention_width(range=c(4,80)),
-                                              num_steps(range=c(2,12)),
-                                              threshold(range=c(0.8,1)),
-                                              freq_cut(range=c(5,50)))
+                                              num_steps(range=c(2,12)))#,
+                                              #threshold(range=c(0.7,1)),
+                                              #freq_cut(range=c(5,50)))
 )
 toc()
 # 2711.58 sec elapsed (~ 45 min)
@@ -348,6 +392,7 @@ toc()
 
 ## VISUALIZANDO OS MELHORES MODELOS (BEST ROC AUC)
 
+show_best(tune_knn, metric="roc_auc", n=3)
 show_best(tune_pls, metric="roc_auc", n=3)
 show_best(tune_net, metric="roc_auc", n=3)
 show_best(tune_rfo, metric="roc_auc", n=3)
