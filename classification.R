@@ -90,6 +90,13 @@ receita_pls<- recipe(y ~ . , data = df_train) %>%
 
 ##### MODELOS #####
 
+model_knn<- nearest_neighbor(neighbors = tune(),
+                             dist_power = tune(),
+                             weight_func = tune()) %>%
+  set_engine("kknn") %>%
+  set_mode("classification")
+
+
 model_pls<- parsnip::pls(num_comp = tune(),
                          predictor_prop = tune()) %>%
   set_engine("mixOmics") %>%
@@ -103,14 +110,14 @@ model_net<- logistic_reg(penalty = tune(),
 
 
 model_rfo<- rand_forest(mtry = tune(),
-                        trees = 1000,
+                        trees = 10000,
                         min_n = tune()) %>%
   set_engine("ranger") %>%
   set_mode("classification")
 
 
 model_xgb<- boost_tree(mtry = tune(),
-                       trees = 1000,
+                       trees = 10000,
                        min_n = tune(),
                        loss_reduction = tune(),
                        learn_rate = tune()) %>%
@@ -125,15 +132,15 @@ model_svm<- svm_rbf(cost = tune(),
   set_mode("classification")
 
 
-model_mlp <- mlp(epochs = 20,
+model_mlp <- mlp(epochs = 200,
                  hidden_units = tune(),
                  dropout = tune(),
                  learn_rate = tune()) %>% 
-  set_engine("brulee") %>% 
+  set_engine("keras") %>% 
   set_mode("classification")
 
 
-model_tbn <- tabnet(epochs = 20,
+model_tbn <- tabnet(epochs = 200,
                     penalty = tune(),
                     learn_rate = tune(),
                     decision_width = tune(),
@@ -146,6 +153,10 @@ model_tbn <- tabnet(epochs = 20,
 
 
 ##### WORKFLOW #####
+
+wf_knn<- workflow() %>%
+  add_recipe(receita_pls) %>%
+  add_model(model_knn)
 
 wf_pls<- workflow() %>%
   add_recipe(receita) %>%
