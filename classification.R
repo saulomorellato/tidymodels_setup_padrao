@@ -159,16 +159,16 @@ model_mlp <- mlp(epochs = 30,
   set_mode("classification")
 
 
-model_tbn <- tabnet(epochs = 200,
-                    penalty = tune(),
-                    learn_rate = tune(),
-                    decision_width = tune(),
-                    attention_width = tune(),
-                    num_steps = tune(),
-                    early_stopping_tolerance = 0.001,
-                    early_stopping_patience = 10) %>% 
-  set_engine("torch") %>% 
-  set_mode("classification")
+# model_tbn <- tabnet(epochs = 200,
+#                     penalty = tune(),
+#                     learn_rate = tune(),
+#                     decision_width = tune(),
+#                     attention_width = tune(),
+#                     num_steps = tune(),
+#                     early_stopping_tolerance = 0.001,
+#                     early_stopping_patience = 10) %>% 
+#   set_engine("torch") %>% 
+#   set_mode("classification")
 
 
 
@@ -203,9 +203,9 @@ wf_mlp<- workflow() %>%
   add_recipe(receita) %>%
   add_model(model_mlp)
 
-wf_tbn<- workflow() %>%
-  add_recipe(receita) %>%
-  add_model(model_tbn)
+# wf_tbn<- workflow() %>%
+#   add_recipe(receita) %>%
+#   add_model(model_tbn)
 
 
 
@@ -378,23 +378,23 @@ toc()
 
 ## TBN - TABNET
 
-tic()
-tune_tbn<- tune_bayes(wf_tbn,
-                      resamples = folds,
-                      initial = 10,
-                      control = control_bayes(save_pred=TRUE,
-                                              save_workflow=TRUE,
-                                              seed=0),
-                      metrics = metric_set(roc_auc),
-                      param_info = parameters(penalty(range=c(-10,5)),
-                                              learn_rate(range=c(-10,0)),
-                                              decision_width(range=c(4,80)),
-                                              attention_width(range=c(4,80)),
-                                              num_steps(range=c(2,12)))#,
-                                              #threshold(range=c(0.7,1)),
-                                              #freq_cut(range=c(5,50)))
-)
-toc()
+# tic()
+# tune_tbn<- tune_bayes(wf_tbn,
+#                       resamples = folds,
+#                       initial = 10,
+#                       control = control_bayes(save_pred=TRUE,
+#                                               save_workflow=TRUE,
+#                                               seed=0),
+#                       metrics = metric_set(roc_auc),
+#                       param_info = parameters(penalty(range=c(-10,5)),
+#                                               learn_rate(range=c(-10,0)),
+#                                               decision_width(range=c(4,80)),
+#                                               attention_width(range=c(4,80)),
+#                                               num_steps(range=c(2,12)))#,
+#                                               #threshold(range=c(0.7,1)),
+#                                               #freq_cut(range=c(5,50)))
+# )
+# toc()
 # 2711.58 sec elapsed (~ 45 min)
 
 
@@ -411,7 +411,7 @@ show_best(tune_rfo, metric="roc_auc", n=3)
 show_best(tune_xgb, metric="roc_auc", n=3)
 show_best(tune_svm, metric="roc_auc", n=3)
 show_best(tune_mlp, metric="roc_auc", n=3)
-show_best(tune_tbn, metric="roc_auc", n=3)
+#show_best(tune_tbn, metric="roc_auc", n=3)
 
 
 
@@ -424,8 +424,8 @@ stack_ensemble_data<- stacks() %>%
   add_candidates(tune_rfo) %>% 
   add_candidates(tune_xgb) %>% 
   add_candidates(tune_svm) %>% 
-  add_candidates(tune_mlp) %>% 
-  add_candidates(tune_tbn)
+  add_candidates(tune_mlp) #%>% 
+  #add_candidates(tune_tbn)
 
 stack_ensemble_data
 
@@ -538,7 +538,7 @@ wf_rfo_trained<- wf_rfo %>% finalize_workflow(select_best(tune_rfo,metric="roc_a
 wf_xgb_trained<- wf_xgb %>% finalize_workflow(select_best(tune_xgb,metric="roc_auc")) %>% fit(df_train)
 wf_svm_trained<- wf_svm %>% finalize_workflow(select_best(tune_svm,metric="roc_auc")) %>% fit(df_train)
 wf_mlp_trained<- wf_mlp %>% finalize_workflow(select_best(tune_mlp,metric="roc_auc")) %>% fit(df_train)
-wf_tbn_trained<- wf_tbn %>% finalize_workflow(select_best(tune_tbn,metric="roc_auc")) %>% fit(df_train)
+#wf_tbn_trained<- wf_tbn %>% finalize_workflow(select_best(tune_tbn,metric="roc_auc")) %>% fit(df_train)
 
 # mlp_best<- tune_mlp %>% select_best(metric="roc_auc")
 # mlp_best_list<- mlp_best %>% as.list()
@@ -550,25 +550,29 @@ wf_tbn_trained<- wf_tbn %>% finalize_workflow(select_best(tune_tbn,metric="roc_a
 
 ## SALVANDO OS MODELOS
 
-# saveRDS(wf_pls_trained,"wf_pls_trained.rds")
-# saveRDS(wf_net_trained,"wf_net_trained.rds")
-# saveRDS(wf_rfo_trained,"wf_rfo_trained.rds")
-# saveRDS(wf_xgb_trained,"wf_xgb_trained.rds")
-# saveRDS(wf_svm_trained,"wf_svm_trained.rds")
-# saveRDS(wf_mlp_trained,"wf_mlp_trained.rds")
-# saveRDS(stack_ensemble_model,"stack_ensemble_model.rds")
-# saveRDS(stack_ensemble_trained,"stack_ensemble_trained.rds")
+saveRDS(wf_knn_trained,"wf_knn_trained.rds")
+saveRDS(wf_pls_trained,"wf_pls_trained.rds")
+saveRDS(wf_net_trained,"wf_net_trained.rds")
+saveRDS(wf_rfo_trained,"wf_rfo_trained.rds")
+saveRDS(wf_xgb_trained,"wf_xgb_trained.rds")
+saveRDS(wf_svm_trained,"wf_svm_trained.rds")
+saveRDS(wf_mlp_trained,"wf_mlp_trained.rds")
+#saveRDS(wf_tbn_trained,"wf_tbn_trained.rds")
+saveRDS(stack_ensemble_model,"stack_ensemble_model.rds")
+saveRDS(stack_ensemble_trained,"stack_ensemble_trained.rds")
 
 
 
 ## CARREGANDO OS MODELOS SALVOS
 
+# wf_knn_trained<- readRDS("wf_knn_trained.rds")
 # wf_pls_trained<- readRDS("wf_pls_trained.rds")
 # wf_net_trained<- readRDS("wf_net_trained.rds")
 # wf_rfo_trained<- readRDS("wf_rfo_trained.rds")
 # wf_xgb_trained<- readRDS("wf_xgb_trained.rds")
 # wf_svm_trained<- readRDS("wf_svm_trained.rds")
 # wf_mlp_trained<- readRDS("wf_mlp_trained.rds")
+# wf_tbn_trained<- readRDS("wf_tbn_trained.rds")
 # stack_ensemble_model<- readRDS("stack_ensemble_model.rds")
 # stack_ensemble_trained<- readRDS("stack_ensemble_trained.rds")
 
@@ -578,18 +582,37 @@ wf_tbn_trained<- wf_tbn %>% finalize_workflow(select_best(tune_tbn,metric="roc_a
 #####  ESCOLHENDO O PONTO DE CORTE - F1-SCORE  #####
 ####################################################
 
+## K NEAREST NEIGHBOR (KNN)
+
+cut_knn<- tune_knn %>% 
+  dplyr::select(id, .predictions) %>% 
+  unnest(.predictions) %>% 
+  filter(neighbors==as.numeric(show_best(tune_knn,metric="roc_auc",n=1)[1]),
+         dist_power==as.numeric(show_best(tune_knn,metric="roc_auc",n=1)[2]),
+         weight_func==as.character(show_best(tune_knn,metric="roc_auc",n=1)[3]),
+         num_comp==as.numeric(show_best(tune_knn,metric="roc_auc",n=1)[4]),
+         predictor_prop==as.numeric(show_best(tune_knn,metric="roc_auc",n=1)[5])) %>% 
+  dplyr::select(.pred_good, y) %>% 
+  dplyr::rename(prob=.pred_good) %>% 
+  cutpointr(prob, y, method=minimize_metric, metric=roc01)
+
+cut_knn<- cut_knn$optimal_cutpoint
+
+
+              
+
 ## CORTE PARTIAL LEAST SQUARE (PLS)
 
 cut_pls<- tune_pls %>% 
   dplyr::select(id, .predictions) %>% 
   unnest(.predictions) %>% 
   filter(num_comp==as.numeric(show_best(tune_pls,metric="roc_auc",n=1)[1]),
-         predictor_prop==as.numeric(show_best(tune_pls,metric="roc_auc",n=1)[2]),
-         threshold==as.numeric(show_best(tune_pls,metric="roc_auc",n=1)[3]),
-         freq_cut==as.numeric(show_best(tune_pls,metric="roc_auc",n=1)[4])) %>% 
-  dplyr::select(.pred_Sim, auto_suficiencia_financeira) %>% 
-  dplyr::rename(prob=.pred_Sim) %>% 
-  cutpointr(prob, auto_suficiencia_financeira, method=minimize_metric, metric=roc01)
+         predictor_prop==as.numeric(show_best(tune_pls,metric="roc_auc",n=1)[2])) %>% #,
+  #threshold==as.numeric(show_best(tune_pls,metric="roc_auc",n=1)[3]),
+  #freq_cut==as.numeric(show_best(tune_pls,metric="roc_auc",n=1)[4])) %>% 
+  dplyr::select(.pred_good, y) %>% 
+  dplyr::rename(prob=.pred_good) %>% 
+  cutpointr(prob, y, method=minimize_metric, metric=roc01)
 
 cut_pls<- cut_pls$optimal_cutpoint
 
@@ -600,12 +623,12 @@ cut_net<- tune_net %>%
   dplyr::select(id, .predictions) %>% 
   unnest(.predictions) %>% 
   filter(penalty==as.numeric(show_best(tune_net,metric="roc_auc",n=1)[1]),
-         mixture==as.numeric(show_best(tune_net,metric="roc_auc",n=1)[2]),
-         threshold==as.numeric(show_best(tune_net,metric="roc_auc",n=1)[3]),
-         freq_cut==as.numeric(show_best(tune_net,metric="roc_auc",n=1)[4])) %>% 
-  dplyr::select(.pred_Sim, auto_suficiencia_financeira) %>% 
-  dplyr::rename(prob=.pred_Sim) %>% 
-  cutpointr(prob, auto_suficiencia_financeira, method=minimize_metric, metric=roc01)
+         mixture==as.numeric(show_best(tune_net,metric="roc_auc",n=1)[2])) %>% #,
+  #threshold==as.numeric(show_best(tune_net,metric="roc_auc",n=1)[3]),
+  #freq_cut==as.numeric(show_best(tune_net,metric="roc_auc",n=1)[4])) %>% 
+  dplyr::select(.pred_good, y) %>% 
+  dplyr::rename(prob=.pred_good) %>% 
+  cutpointr(prob, y, method=minimize_metric, metric=roc01)
 
 cut_net<- cut_net$optimal_cutpoint
 
@@ -617,12 +640,12 @@ cut_rfo<- tune_rfo %>%
   dplyr::select(id, .predictions) %>% 
   unnest(.predictions) %>% 
   filter(mtry==as.numeric(show_best(tune_rfo,metric="roc_auc",n=1)[1]),
-         min_n==as.numeric(show_best(tune_rfo,metric="roc_auc",n=1)[2]),
-         threshold==as.numeric(show_best(tune_rfo,metric="roc_auc",n=1)[3]),
-         freq_cut==as.numeric(show_best(tune_rfo,metric="roc_auc",n=1)[4])) %>% 
-  dplyr::select(.pred_Sim, auto_suficiencia_financeira) %>% 
-  dplyr::rename(prob=.pred_Sim) %>% 
-  cutpointr(prob, auto_suficiencia_financeira, method=minimize_metric, metric=roc01)
+         min_n==as.numeric(show_best(tune_rfo,metric="roc_auc",n=1)[2])) %>% #,
+  #threshold==as.numeric(show_best(tune_rfo,metric="roc_auc",n=1)[3]),
+  #freq_cut==as.numeric(show_best(tune_rfo,metric="roc_auc",n=1)[4])) %>% 
+  dplyr::select(.pred_good, y) %>% 
+  dplyr::rename(prob=.pred_good) %>% 
+  cutpointr(prob, y, method=minimize_metric, metric=roc01)
 
 cut_rfo<- cut_rfo$optimal_cutpoint
 
@@ -636,12 +659,12 @@ cut_xgb<- tune_xgb %>%
   filter(mtry==as.numeric(show_best(tune_xgb,metric="roc_auc",n=1)[1]),
          min_n==as.numeric(show_best(tune_xgb,metric="roc_auc",n=1)[2]),
          loss_reduction==as.numeric(show_best(tune_xgb,metric="roc_auc",n=1)[3]),
-         learn_rate==as.numeric(show_best(tune_xgb,metric="roc_auc",n=1)[4]),
-         threshold==as.numeric(show_best(tune_xgb,metric="roc_auc",n=1)[5]),
-         freq_cut==as.numeric(show_best(tune_xgb,metric="roc_auc",n=1)[6])) %>% 
-  dplyr::select(.pred_Sim, auto_suficiencia_financeira) %>% 
-  dplyr::rename(prob=.pred_Sim) %>% 
-  cutpointr(prob, auto_suficiencia_financeira, method=minimize_metric, metric=roc01)
+         learn_rate==as.numeric(show_best(tune_xgb,metric="roc_auc",n=1)[4])) %>% #,
+  #threshold==as.numeric(show_best(tune_xgb,metric="roc_auc",n=1)[5]),
+  #freq_cut==as.numeric(show_best(tune_xgb,metric="roc_auc",n=1)[6])) %>% 
+  dplyr::select(.pred_good, y) %>% 
+  dplyr::rename(prob=.pred_good) %>% 
+  cutpointr(prob, y, method=minimize_metric, metric=roc01)
 
 cut_xgb<- cut_xgb$optimal_cutpoint
 
@@ -655,13 +678,32 @@ cut_svm<- tune_svm %>%
   filter(cost==as.numeric(show_best(tune_svm,metric="roc_auc",n=1)[1]),
          margin==as.numeric(show_best(tune_svm,metric="roc_auc",n=1)[2]),
          rbf_sigma==as.numeric(show_best(tune_svm,metric="roc_auc",n=1)[3]),
-         threshold==as.numeric(show_best(tune_svm,metric="roc_auc",n=1)[4]),
-         freq_cut==as.numeric(show_best(tune_svm,metric="roc_auc",n=1)[5])) %>% 
-  dplyr::select(.pred_Sim, auto_suficiencia_financeira) %>% 
-  dplyr::rename(prob=.pred_Sim) %>% 
-  cutpointr(prob, auto_suficiencia_financeira, method=minimize_metric, metric=roc01)
+         num_comp==as.numeric(show_best(tune_svm,metric="roc_auc",n=1)[4]),
+         predictor_prop==as.numeric(show_best(tune_svm,metric="roc_auc",n=1)[5])) %>% 
+  dplyr::select(.pred_good, y) %>% 
+  dplyr::rename(prob=.pred_good) %>% 
+  cutpointr(prob, y, method=minimize_metric, metric=roc01)
 
 cut_svm<- cut_svm$optimal_cutpoint
+
+
+
+
+## CORTE MLP
+
+cut_mlp<- tune_mlp %>% 
+  dplyr::select(id, .predictions) %>% 
+  unnest(.predictions) %>% 
+  filter(hidden_units==as.numeric(show_best(tune_mlp,metric="roc_auc",n=1)[1]),
+         dropout==as.numeric(show_best(tune_mlp,metric="roc_auc",n=1)[2]),
+         learn_rate==as.numeric(show_best(tune_mlp,metric="roc_auc",n=1)[3])) %>% #,
+         #num_comp==as.numeric(show_best(tune_mlp,metric="roc_auc",n=1)[4]),
+         #predictor_prop==as.numeric(show_best(tune_mlp,metric="roc_auc",n=1)[5])) %>% 
+  dplyr::select(.pred_good, y) %>% 
+  dplyr::rename(prob=.pred_good) %>% 
+  cutpointr(prob, y, method=minimize_metric, metric=roc01)
+
+cut_mlp<- cut_mlp$optimal_cutpoint
 
 
 
