@@ -508,7 +508,8 @@ set.seed(0)
 stack_ensemble_model<- stack_ensemble_data %>% 
   blend_predictions(penalty = grid.p,
                     mixture = grid.m, # 0=RIDGE; 1=LASSO
-                    control = control_grid(),
+                    control = control_grid(save_pred=TRUE,
+                                           save_workflow=TRUE),
                     non_negative = TRUE,
                     metric = metric_set(roc_auc))
 
@@ -572,7 +573,7 @@ saveRDS(stack_ensemble_trained,"stack_ensemble_trained.rds")
 # wf_xgb_trained<- readRDS("wf_xgb_trained.rds")
 # wf_svm_trained<- readRDS("wf_svm_trained.rds")
 # wf_mlp_trained<- readRDS("wf_mlp_trained.rds")
-# wf_tbn_trained<- readRDS("wf_tbn_trained.rds")
+# #wf_tbn_trained<- readRDS("wf_tbn_trained.rds")
 # stack_ensemble_model<- readRDS("stack_ensemble_model.rds")
 # stack_ensemble_trained<- readRDS("stack_ensemble_trained.rds")
 
@@ -715,7 +716,16 @@ cut_stc<- stack_ensemble_trained %>% predict(df_train, type="prob") %>%
 cut_stc<- cut_stc$optimal_cutpoint
 
 
+cut_stc<- stack_ensemble_model$
+
+cut_stc<- cut_stc$optimal_cutpoint
+
+
 cut_stc<- summary(df_train$auto_suficiencia_financeira)[2]/nrow(df_train)
+
+
+
+
 
 
 
