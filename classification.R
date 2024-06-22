@@ -880,7 +880,8 @@ tic()
 explainer_stc<- explain_tidymodels(model=stack_ensemble_trained,
                                    data=dplyr::select(df_train,-y),
                                    y=df_train$y=="good",
-                                   label="Stacking")
+                                   #label="Stacking")
+                                   label="")
 toc()
 
 
@@ -923,77 +924,41 @@ profile_stc %>% plot(geom = "aggregates",
                      #title="",
                      subtitle="")
 
-explainer_stc %>% model_profile(variables=c("SIZE","SCORE")) %>% plot(geom = "profiles")
+explainer_stc %>% model_profile(variables=c("alcohol","sulphates")) %>% plot(geom = "profiles")
+explainer_stc %>% model_profile(variables=c("alcohol","sulphates")) %>% plot(geom = "points")
 
 
 profile_stc$agr_profiles %>% 
   data.frame() %>% 
-  filter(X_vname_ %in% c("SIZE")) %>% 
+  filter(X_vname_ %in% c("alcohol")) %>% 
   ggplot(aes(x = X_x_,
              y = X_yhat_)) +
   geom_point() +
   geom_smooth(method = "lm", formula = y ~ poly(x, 3), se = FALSE) +
   #geom_smooth(method = "loess", se = FALSE) + 
   #geom_line(data = spline_int, aes(x = x, y = y)) +
-  ylab("ROA estimado") +
-  xlab("SIZE") +
+  #ylab("ROA estimado") +
+  #xlab("SIZE") +
   #ylim(c(5,9)) +
   theme_bw()
 
 
-df_SIZE<- profile_stc$agr_profiles %>% 
+df_alcohol<- profile_stc$agr_profiles %>% 
   data.frame() %>% 
-  dplyr::filter(X_vname_ %in% c("SIZE")) %>% 
-  dplyr::rename(ROA=X_yhat_) %>% 
-  dplyr::rename(SIZE=X_x_) %>% 
-  dplyr::select(c(ROA,SIZE))
+  dplyr::filter(X_vname_ %in% c("alcohol")) %>% 
+  dplyr::rename(y=X_yhat_) %>% 
+  dplyr::rename(alcohol=X_x_) %>% 
+  dplyr::select(c(y,alcohol))
 
-df_SIZE %>% 
-  ggplot(aes(x = SIZE,y = ROA)) +
+df_alcohol %>% 
+  ggplot(aes(x = alcohol,y = y)) +
   geom_point() +
   #geom_smooth(method = "lm", formula = y ~ poly(x, 3), se = FALSE) +
   #geom_smooth(method = "loess", se = FALSE) + 
   geom_smooth(formula = y ~ s(x, k = 20), method = "gam", se = FALSE) + 
-  ylab("ROA estimado") +
-  xlab("SIZE") +
+  ylab("Probabilidade de Good") +
+  xlab("alcohol") +
   ggtitle("Ceteris Paribus profile") + 
   theme_bw() 
 
 
-df_SCORE<- profile_stc$agr_profiles %>% 
-  data.frame() %>% 
-  dplyr::filter(X_vname_ %in% c("SCORE")) %>% 
-  dplyr::rename(ROA=X_yhat_) %>% 
-  dplyr::rename(SCORE=X_x_) %>% 
-  dplyr::select(c(ROA,SCORE))
-
-df_SCORE %>% 
-  ggplot(aes(x = SCORE,y = ROA)) +
-  geom_point() +
-  #geom_smooth(method = "lm", formula = y ~ poly(x, 3), se = FALSE) +
-  #geom_smooth(method = "loess", se = FALSE) + 
-  geom_smooth(formula = y ~ s(x, k = 4), method = "gam", se = FALSE) + 
-  ylab("ROA estimado") +
-  xlab("SCORE") +
-  ggtitle("Ceteris Paribus profile") + 
-  theme_bw() 
-
-
-
-df_HHI_s<- profile_stc$agr_profiles %>% 
-  data.frame() %>% 
-  dplyr::filter(X_vname_ %in% c("HHI_s")) %>% 
-  dplyr::rename(ROA=X_yhat_) %>% 
-  dplyr::rename(HHI_s=X_x_) %>% 
-  dplyr::select(c(ROA,HHI_s))
-
-df_HHI_s %>% 
-  ggplot(aes(x = HHI_s,y = ROA)) +
-  geom_point() +
-  #geom_smooth(method = "lm", formula = y ~ poly(x, 3), se = FALSE) +
-  #geom_smooth(method = "loess", se = FALSE) + 
-  geom_smooth(formula = y ~ s(x, k = 15), method = "gam", se = FALSE) + 
-  ylab("ROA estimado") +
-  xlab("HHI_s") +
-  ggtitle("Ceteris Paribus profile") + 
-  theme_bw() 
