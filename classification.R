@@ -242,6 +242,14 @@ tune_knn<- tune_bayes(wf_knn,
 toc()
 # 223.33 sec elapsed (~ 4 min)
 
+tic()
+tune_knn_best<- tune_grid(wf_knn,
+                          resamples = folds,
+                          grid = show_best(tune_knn,n=1)[,1],
+                          control = control_bayes(save_pred=TRUE,
+                                                  save_workflow=TRUE),
+                          metrics = metric_set(roc_auc))
+toc()
 
 
 
@@ -263,6 +271,15 @@ tune_pls<- tune_bayes(wf_pls,
 toc()
 # 101.03 sec elapsed (~ 2 min)
 
+tic()
+tune_pls_best<- tune_grid(wf_pls,
+                          resamples = folds,
+                          grid = show_best(tune_pls,n=1)[,1],
+                          control = control_bayes(save_pred=TRUE,
+                                                  save_workflow=TRUE),
+                          metrics = metric_set(roc_auc))
+toc()
+
 
 
 ## NET - ELASTIC NET
@@ -283,6 +300,14 @@ tune_net<- tune_bayes(wf_net,
 toc()
 # 31.97 sec elapsed (~ 0.5 min)
 
+tic()
+tune_net_best<- tune_grid(wf_net,
+                          resamples = folds,
+                          grid = show_best(tune_net,n=1)[,1],
+                          control = control_bayes(save_pred=TRUE,
+                                                  save_workflow=TRUE),
+                          metrics = metric_set(roc_auc))
+toc()
 
 
 
@@ -304,6 +329,14 @@ tune_rfo<- tune_bayes(wf_rfo,
 toc()
 # 405.44 sec elapsed (~ 7 min)
 
+tic()
+tune_rfo_best<- tune_grid(wf_rfo,
+                          resamples = folds,
+                          grid = show_best(tune_rfo,n=1)[,1],
+                          control = control_bayes(save_pred=TRUE,
+                                                  save_workflow=TRUE),
+                          metrics = metric_set(roc_auc))
+toc()
 
 
 
@@ -327,6 +360,14 @@ tune_xgb<- tune_bayes(wf_xgb,
 toc()
 # 906.62 sec elapsed (~ 15 min)
 
+tic()
+tune_xgb_best<- tune_grid(wf_xgb,
+                          resamples = folds,
+                          grid = show_best(tune_xgb,n=1)[,1],
+                          control = control_bayes(save_pred=TRUE,
+                                                  save_workflow=TRUE),
+                          metrics = metric_set(roc_auc))
+toc()
 
 
 
@@ -351,6 +392,14 @@ tune_svm<- tune_bayes(wf_svm,
 toc()
 # 108.87 sec elapsed (~ 2 min)
 
+tic()
+tune_svm_best<- tune_grid(wf_svm,
+                          resamples = folds,
+                          grid = show_best(tune_svm,n=1)[,1],
+                          control = control_bayes(save_pred=TRUE,
+                                                  save_workflow=TRUE),
+                          metrics = metric_set(roc_auc))
+toc()
 
 
 
@@ -373,6 +422,14 @@ tune_mlp<- tune_bayes(wf_mlp,
 toc()
 # 778.31 sec elapsed (~ 13 min)
 
+tic()
+tune_mlp_best<- tune_grid(wf_mlp,
+                          resamples = folds,
+                          grid = show_best(tune_mlp,n=1)[,1],
+                          control = control_bayes(save_pred=TRUE,
+                                                  save_workflow=TRUE),
+                          metrics = metric_set(roc_auc))
+toc()
 
 
 
@@ -396,7 +453,15 @@ toc()
 # )
 # toc()
 # 2711.58 sec elapsed (~ 45 min)
-
+# 
+# tic()
+# tune_tbn_best<- tune_grid(wf_tbn,
+#                           resamples = folds,
+#                           grid = show_best(tune_tbn,n=1)[,1],
+#                           control = control_bayes(save_pred=TRUE,
+#                                                   save_workflow=TRUE),
+#                           metrics = metric_set(roc_auc))
+# toc()
 
 
 
@@ -427,7 +492,17 @@ stack_ensemble_data<- stacks() %>%
   add_candidates(tune_mlp) #%>% 
   #add_candidates(tune_tbn)
 
+stack_ensemble_data_best<- stacks() %>% 
+  add_candidates(tune_pls_best) %>% 
+  add_candidates(tune_net_best) %>% 
+  add_candidates(tune_rfo_best) %>% 
+  add_candidates(tune_xgb_best) %>% 
+  add_candidates(tune_svm_best) %>% 
+  add_candidates(tune_mlp_best) #%>% 
+#add_candidates(tune_tbn)
+
 stack_ensemble_data
+stack_ensemble_data_best
 
 
 ##### AJUSTANDO STACKING #####
@@ -436,14 +511,33 @@ set.seed(0)
 stack_ensemble_model<- stack_ensemble_data %>% 
   blend_predictions(penalty = 10^(-9:3),
                     mixture = seq(0,1,by=0.1), # 0=RIDGE; 1=LASSO
-                    control = control_grid(),
+                    control = control_grid(save_pred=TRUE,
+                                           save_workflow=TRUE),
                     non_negative = TRUE,
                     metric = metric_set(roc_auc))
 
 autoplot(stack_ensemble_model)
 autoplot(stack_ensemble_model,type = "weights")
 
+set.seed(0)
+stack_ensemble_model_best<- stack_ensemble_data_best %>% 
+  blend_predictions(penalty = 10^(-9:3),
+                    mixture = seq(0,1,by=0.1), # 0=RIDGE; 1=LASSO
+                    control = control_grid(save_pred=TRUE,
+                                           save_workflow=TRUE),
+                    non_negative = TRUE,
+                    metric = metric_set(roc_auc))
+
+autoplot(stack_ensemble_model)
+autoplot(stack_ensemble_model,type = "weights")
+
+autoplot(stack_ensemble_model_best)
+autoplot(stack_ensemble_model_best,type = "weights")
+
 stack_ensemble_model$penalty
+stack_ensemble_model_best$penalty
+
+
 
 
 ##### REFINANDO O AJUSTE DOS PARÂMETROS DO STACKING  #####
@@ -523,9 +617,11 @@ stack_ensemble_model$penalty
 
 stack_ensemble_trained<- stack_ensemble_model %>% 
   fit_members()
+stack_ensemble_trained_best<- stack_ensemble_model_best %>% 
+  fit_members()
 
 stack_ensemble_trained
-
+stack_ensemble_trained_best
 
 
 
@@ -561,6 +657,8 @@ wf_mlp_trained<- wf_mlp %>% finalize_workflow(select_best(tune_mlp,metric="roc_a
 # #saveRDS(wf_tbn_trained,"wf_tbn_trained.rds")
 # saveRDS(stack_ensemble_model,"stack_ensemble_model.rds")
 # saveRDS(stack_ensemble_trained,"stack_ensemble_trained.rds")
+# saveRDS(stack_ensemble_model_best,"stack_ensemble_model_best.rds")
+# saveRDS(stack_ensemble_trained_best,"stack_ensemble_trained_best.rds")
 
 
 
@@ -576,6 +674,8 @@ wf_mlp_trained<- wf_mlp %>% finalize_workflow(select_best(tune_mlp,metric="roc_a
 # #wf_tbn_trained<- readRDS("wf_tbn_trained.rds")
 # stack_ensemble_model<- readRDS("stack_ensemble_model.rds")
 # stack_ensemble_trained<- readRDS("stack_ensemble_trained.rds")
+# stack_ensemble_model_best<- readRDS("stack_ensemble_model_best.rds")
+# stack_ensemble_trained_best<- readRDS("stack_ensemble_trained_best.rds")
 
 
 
@@ -728,6 +828,27 @@ cut_stc<- stack_ensemble_model$data_stack %>%
 
 cut_stc<- cut_stc$optimal_cutpoint
 
+
+
+## CORTE STACKING BEST
+
+#stack_ensemble_model_best$equations$prob$.pred_good
+
+cut_stc_best<- stack_ensemble_model_best$data_stack %>% 
+  mutate(prob=stats::binomial()$linkinv(-1986.1887500958 + (.pred_good_tune_pls_1_06 * 
+                                                              6.24833391443496) + (.pred_good_tune_rfo_1_04 * 6.15661550343039) + 
+                                          (.pred_good_tune_rfoIter1 * 1.60432421570565) + (.pred_good_tune_xgbIter10 * 
+                                                                                             2625.49171927685) + (.pred_good_tune_xgb_1_01 * 2411.75034202656) + 
+                                          (.pred_good_tune_svmIter6 * 141.84471730588) + (.pred_good_tune_svmIter1 * 
+                                                                                            892.629042166445) + (.pred_good_tune_svm_03_1 * 34.1432529250141) + 
+                                          (.pred_good_tune_svm_04_1 * 119.398543489093) + (.pred_good_tune_mlp_1_05 * 
+                                                                                             5.9902197320082) + (.pred_good_tune_mlp_1_03 * 7.38638864651588) + 
+                                          (.pred_good_tune_mlp_1_10 * 2.04554003925663) + (.pred_good_tune_mlp_1_07 * 
+                                                                                             0.858245004475694))) %>% 
+  dplyr::select(y,prob) %>% 
+  cutpointr(prob, y, method=minimize_metric, metric=roc01)
+
+cut_stc_best<- cut_stc_best$optimal_cutpoint
 
 
 cbind(cut_knn,
