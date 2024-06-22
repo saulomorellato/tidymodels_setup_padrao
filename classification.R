@@ -245,7 +245,7 @@ toc()
 tic()
 tune_knn_best<- tune_grid(wf_knn,
                           resamples = folds,
-                          grid = show_best(tune_knn,n=1)[,1],
+                          grid = show_best(tune_knn,metric="roc_auc",n=1)[1:5],
                           control = control_bayes(save_pred=TRUE,
                                                   save_workflow=TRUE),
                           metrics = metric_set(roc_auc))
@@ -274,7 +274,7 @@ toc()
 tic()
 tune_pls_best<- tune_grid(wf_pls,
                           resamples = folds,
-                          grid = show_best(tune_pls,n=1)[,1],
+                          grid = show_best(tune_pls,metric="roc_auc",n=1)[1:2],
                           control = control_bayes(save_pred=TRUE,
                                                   save_workflow=TRUE),
                           metrics = metric_set(roc_auc))
@@ -303,7 +303,7 @@ toc()
 tic()
 tune_net_best<- tune_grid(wf_net,
                           resamples = folds,
-                          grid = show_best(tune_net,n=1)[,1],
+                          grid = show_best(tune_net,metric="roc_auc",n=1)[1:2],
                           control = control_bayes(save_pred=TRUE,
                                                   save_workflow=TRUE),
                           metrics = metric_set(roc_auc))
@@ -332,7 +332,7 @@ toc()
 tic()
 tune_rfo_best<- tune_grid(wf_rfo,
                           resamples = folds,
-                          grid = show_best(tune_rfo,n=1)[,1],
+                          grid = show_best(tune_rfo,metric="roc_auc",n=1)[1:2],
                           control = control_bayes(save_pred=TRUE,
                                                   save_workflow=TRUE),
                           metrics = metric_set(roc_auc))
@@ -363,7 +363,7 @@ toc()
 tic()
 tune_xgb_best<- tune_grid(wf_xgb,
                           resamples = folds,
-                          grid = show_best(tune_xgb,n=1)[,1],
+                          grid = show_best(tune_xgb,metric="roc_auc",n=1)[1:4],
                           control = control_bayes(save_pred=TRUE,
                                                   save_workflow=TRUE),
                           metrics = metric_set(roc_auc))
@@ -395,7 +395,7 @@ toc()
 tic()
 tune_svm_best<- tune_grid(wf_svm,
                           resamples = folds,
-                          grid = show_best(tune_svm,n=1)[,1],
+                          grid = show_best(tune_svm,metric="roc_auc",n=1)[1:5],
                           control = control_bayes(save_pred=TRUE,
                                                   save_workflow=TRUE),
                           metrics = metric_set(roc_auc))
@@ -425,7 +425,7 @@ toc()
 tic()
 tune_mlp_best<- tune_grid(wf_mlp,
                           resamples = folds,
-                          grid = show_best(tune_mlp,n=1)[,1],
+                          grid = show_best(tune_mlp,metric="roc_auc",n=1)[1:3],
                           control = control_bayes(save_pred=TRUE,
                                                   save_workflow=TRUE),
                           metrics = metric_set(roc_auc))
@@ -516,8 +516,6 @@ stack_ensemble_model<- stack_ensemble_data %>%
                     non_negative = TRUE,
                     metric = metric_set(roc_auc))
 
-autoplot(stack_ensemble_model)
-autoplot(stack_ensemble_model,type = "weights")
 
 set.seed(0)
 stack_ensemble_model_best<- stack_ensemble_data_best %>% 
