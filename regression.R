@@ -272,7 +272,7 @@ tune_pls_best<- tune_grid(wf_pls,
                           grid = show_best(tune_pls,metric="mae",n=1)[1:2],
                           control = control_bayes(save_pred=TRUE,
                                                   save_workflow=TRUE),
-                          metrics = metric_set(roc_auc))
+                          metrics = metric_set(mae))
 toc()
 
 
@@ -621,16 +621,16 @@ stack_ensemble_trained_best
 
 ##### FINALIZANDO MODELOS INDIVIDUAIS #####
 
-wf_knn_trained<- wf_knn %>% finalize_workflow(select_best(tune_knn,metric="roc_auc")) %>% fit(df_train)
-wf_pls_trained<- wf_pls %>% finalize_workflow(select_best(tune_pls,metric="roc_auc")) %>% fit(df_train)
-wf_net_trained<- wf_net %>% finalize_workflow(select_best(tune_net,metric="roc_auc")) %>% fit(df_train)
-wf_rfo_trained<- wf_rfo %>% finalize_workflow(select_best(tune_rfo,metric="roc_auc")) %>% fit(df_train)
-wf_xgb_trained<- wf_xgb %>% finalize_workflow(select_best(tune_xgb,metric="roc_auc")) %>% fit(df_train)
-wf_svm_trained<- wf_svm %>% finalize_workflow(select_best(tune_svm,metric="roc_auc")) %>% fit(df_train)
-wf_mlp_trained<- wf_mlp %>% finalize_workflow(select_best(tune_mlp,metric="roc_auc")) %>% fit(df_train)
-#wf_tbn_trained<- wf_tbn %>% finalize_workflow(select_best(tune_tbn,metric="roc_auc")) %>% fit(df_train)
+wf_knn_trained<- wf_knn %>% finalize_workflow(select_best(tune_knn,metric="mae")) %>% fit(df_train)
+wf_pls_trained<- wf_pls %>% finalize_workflow(select_best(tune_pls,metric="mae")) %>% fit(df_train)
+wf_net_trained<- wf_net %>% finalize_workflow(select_best(tune_net,metric="mae")) %>% fit(df_train)
+wf_rfo_trained<- wf_rfo %>% finalize_workflow(select_best(tune_rfo,metric="mae")) %>% fit(df_train)
+wf_xgb_trained<- wf_xgb %>% finalize_workflow(select_best(tune_xgb,metric="mae")) %>% fit(df_train)
+wf_svm_trained<- wf_svm %>% finalize_workflow(select_best(tune_svm,metric="mae")) %>% fit(df_train)
+wf_mlp_trained<- wf_mlp %>% finalize_workflow(select_best(tune_mlp,metric="mae")) %>% fit(df_train)
+#wf_tbn_trained<- wf_tbn %>% finalize_workflow(select_best(tune_tbn,metric="mae")) %>% fit(df_train)
 
-# mlp_best<- tune_mlp %>% select_best(metric="roc_auc")
+# mlp_best<- tune_mlp %>% select_best(metric="mae")
 # mlp_best_list<- mlp_best %>% as.list()
 # mlp_best_list$hidden_units <- mlp_best_list$hidden_units %>% unlist()
 # wf_mlp_trained<- wf_mlp %>% finalize_workflow(mlp_best_list) %>% fit(df_train)
@@ -672,209 +672,33 @@ wf_mlp_trained<- wf_mlp %>% finalize_workflow(select_best(tune_mlp,metric="roc_a
 
 
 
-####################################################
-#####  ESCOLHENDO O PONTO DE CORTE - F1-SCORE  #####
-####################################################
 
-## K NEAREST NEIGHBOR (KNN)
+### VALIDATION ###
 
-cut_knn<- tune_knn %>% 
-  dplyr::select(id, .predictions) %>% 
-  unnest(.predictions) %>% 
-  filter(neighbors==as.numeric(show_best(tune_knn,metric="roc_auc",n=1)[1]),
-         dist_power==as.numeric(show_best(tune_knn,metric="roc_auc",n=1)[2]),
-         weight_func==as.character(show_best(tune_knn,metric="roc_auc",n=1)[3]),
-         num_comp==as.numeric(show_best(tune_knn,metric="roc_auc",n=1)[4]),
-         predictor_prop==as.numeric(show_best(tune_knn,metric="roc_auc",n=1)[5])) %>% 
-  dplyr::select(.pred_good, y) %>% 
-  dplyr::rename(prob=.pred_good) %>% 
-  cutpointr(prob, y, method=minimize_metric, metric=roc01)
+# PREDIZENDO DADOS TESTE
 
-cut_knn<- cut_knn$optimal_cutpoint
+pred_knn<- wf_knn_trained %>% predict(df_test)
+pred_pls<- wf_pls_trained %>% predict(df_test)
+pred_net<- wf_net_trained %>% predict(df_test)
+pred_rfo<- wf_rfo_trained %>% predict(df_test)
+pred_xgb<- wf_xgb_trained %>% predict(df_test)
+pred_svm<- wf_svm_trained %>% predict(df_test)
+pred_mlp<- wf_mlp_trained %>% predict(df_test)
+pred_stc<- stack_ensemble_trained %>% predict(df_test)
+pred_stc_best<- stack_ensemble_trained_best %>% predict(df_test)
 
+df_pred<- cbind.data.frame(df_test$y,
+                           pred_knn,
+                           pred_pls,
+                           pred_net,
+                           pred_rfo,
+                           pred_xgb,
+                           pred_svm,
+                           pred_mlp,
+                           pred_stc,
+                           pred_stc_best)
 
-
-
-## CORTE PARTIAL LEAST SQUARE (PLS)
-
-cut_pls<- tune_pls %>% 
-  dplyr::select(id, .predictions) %>% 
-  unnest(.predictions) %>% 
-  filter(num_comp==as.numeric(show_best(tune_pls,metric="roc_auc",n=1)[1]),
-         predictor_prop==as.numeric(show_best(tune_pls,metric="roc_auc",n=1)[2])) %>% #,
-  #threshold==as.numeric(show_best(tune_pls,metric="roc_auc",n=1)[3]),
-  #freq_cut==as.numeric(show_best(tune_pls,metric="roc_auc",n=1)[4])) %>% 
-  dplyr::select(.pred_good, y) %>% 
-  dplyr::rename(prob=.pred_good) %>% 
-  cutpointr(prob, y, method=minimize_metric, metric=roc01)
-
-cut_pls<- cut_pls$optimal_cutpoint
-
-
-## CORTE ELASTIC-NET
-
-cut_net<- tune_net %>% 
-  dplyr::select(id, .predictions) %>% 
-  unnest(.predictions) %>% 
-  filter(penalty==as.numeric(show_best(tune_net,metric="roc_auc",n=1)[1]),
-         mixture==as.numeric(show_best(tune_net,metric="roc_auc",n=1)[2])) %>% #,
-  #threshold==as.numeric(show_best(tune_net,metric="roc_auc",n=1)[3]),
-  #freq_cut==as.numeric(show_best(tune_net,metric="roc_auc",n=1)[4])) %>% 
-  dplyr::select(.pred_good, y) %>% 
-  dplyr::rename(prob=.pred_good) %>% 
-  cutpointr(prob, y, method=minimize_metric, metric=roc01)
-
-cut_net<- cut_net$optimal_cutpoint
-
-
-
-## CORTE RANDOM FOREST
-
-cut_rfo<- tune_rfo %>% 
-  dplyr::select(id, .predictions) %>% 
-  unnest(.predictions) %>% 
-  filter(mtry==as.numeric(show_best(tune_rfo,metric="roc_auc",n=1)[1]),
-         min_n==as.numeric(show_best(tune_rfo,metric="roc_auc",n=1)[2])) %>% #,
-  #threshold==as.numeric(show_best(tune_rfo,metric="roc_auc",n=1)[3]),
-  #freq_cut==as.numeric(show_best(tune_rfo,metric="roc_auc",n=1)[4])) %>% 
-  dplyr::select(.pred_good, y) %>% 
-  dplyr::rename(prob=.pred_good) %>% 
-  cutpointr(prob, y, method=minimize_metric, metric=roc01)
-
-cut_rfo<- cut_rfo$optimal_cutpoint
-
-
-
-## CORTE XGBOOSTING
-
-cut_xgb<- tune_xgb %>% 
-  dplyr::select(id, .predictions) %>% 
-  unnest(.predictions) %>% 
-  filter(mtry==as.numeric(show_best(tune_xgb,metric="roc_auc",n=1)[1]),
-         min_n==as.numeric(show_best(tune_xgb,metric="roc_auc",n=1)[2]),
-         loss_reduction==as.numeric(show_best(tune_xgb,metric="roc_auc",n=1)[3]),
-         learn_rate==as.numeric(show_best(tune_xgb,metric="roc_auc",n=1)[4])) %>% #,
-  #threshold==as.numeric(show_best(tune_xgb,metric="roc_auc",n=1)[5]),
-  #freq_cut==as.numeric(show_best(tune_xgb,metric="roc_auc",n=1)[6])) %>% 
-  dplyr::select(.pred_good, y) %>% 
-  dplyr::rename(prob=.pred_good) %>% 
-  cutpointr(prob, y, method=minimize_metric, metric=roc01)
-
-cut_xgb<- cut_xgb$optimal_cutpoint
-
-
-
-## CORTE SVM
-
-cut_svm<- tune_svm %>% 
-  dplyr::select(id, .predictions) %>% 
-  unnest(.predictions) %>% 
-  filter(cost==as.numeric(show_best(tune_svm,metric="roc_auc",n=1)[1]),
-         margin==as.numeric(show_best(tune_svm,metric="roc_auc",n=1)[2]),
-         rbf_sigma==as.numeric(show_best(tune_svm,metric="roc_auc",n=1)[3]),
-         num_comp==as.numeric(show_best(tune_svm,metric="roc_auc",n=1)[4]),
-         predictor_prop==as.numeric(show_best(tune_svm,metric="roc_auc",n=1)[5])) %>% 
-  dplyr::select(.pred_good, y) %>% 
-  dplyr::rename(prob=.pred_good) %>% 
-  cutpointr(prob, y, method=minimize_metric, metric=roc01)
-
-cut_svm<- cut_svm$optimal_cutpoint
-
-
-
-
-## CORTE MLP
-
-cut_mlp<- tune_mlp %>% 
-  dplyr::select(id, .predictions) %>% 
-  unnest(.predictions) %>% 
-  filter(hidden_units==as.numeric(show_best(tune_mlp,metric="roc_auc",n=1)[1]),
-         dropout==as.numeric(show_best(tune_mlp,metric="roc_auc",n=1)[2]),
-         learn_rate==as.numeric(show_best(tune_mlp,metric="roc_auc",n=1)[3])) %>% #,
-  #num_comp==as.numeric(show_best(tune_mlp,metric="roc_auc",n=1)[4]),
-  #predictor_prop==as.numeric(show_best(tune_mlp,metric="roc_auc",n=1)[5])) %>% 
-  dplyr::select(.pred_good, y) %>% 
-  dplyr::rename(prob=.pred_good) %>% 
-  cutpointr(prob, y, method=minimize_metric, metric=roc01)
-
-cut_mlp<- cut_mlp$optimal_cutpoint
-
-
-
-## CORTE STACKING
-
-#stack_ensemble_model$equations$prob$.pred_good
-
-cut_stc<- stack_ensemble_model$data_stack %>% 
-  mutate(prob=stats::binomial()$linkinv(-271.512022989899 + (.pred_good_tune_plsIter6 * 
-                                                               3.57066307164952) + (.pred_good_tune_plsIter5 * 3.53813678217686) + 
-                                          (.pred_good_tune_pls_1_10 * 4.2308936708972) + (.pred_good_tune_rfoIter1 * 
-                                                                                            0.691878790345409) + (.pred_good_tune_rfo_1_04 * 3.32365465641122) + 
-                                          (.pred_good_tune_rfoIter4 * 1.13741737842188) + (.pred_good_tune_xgb_1_02 * 
-                                                                                             901.764713952155) + (.pred_good_tune_xgbIter7 * 0.501434668321488) + 
-                                          (.pred_good_tune_svm_03_1 * 17.4600676944194) + (.pred_good_tune_svm_08_1 * 
-                                                                                             33.394142778468) + (.pred_good_tune_svm_01_1 * 29.1280960447429) + 
-                                          (.pred_good_tune_mlp_1_02 * 3.53829699527865) + (.pred_good_tune_mlp_1_04 * 
-                                                                                             0.183078870444202) + (.pred_good_tune_mlpIter10 * 0.101883541129689) + 
-                                          (.pred_good_tune_mlp_1_07 * 1.38013737256325) + (.pred_good_tune_mlp_1_10 * 
-                                                                                             1.89222460821035))) %>% 
-  dplyr::select(y,prob) %>% 
-  cutpointr(prob, y, method=minimize_metric, metric=roc01)
-
-cut_stc<- cut_stc$optimal_cutpoint
-
-
-
-## CORTE STACKING BEST
-
-#stack_ensemble_model_best$equations$prob$.pred_good
-
-cut_stc_best<- stack_ensemble_model_best$data_stack %>% 
-  mutate(prob=stats::binomial()$linkinv(-5.3911213779068 + (.pred_good_tune_pls_best_1_1 * 
-                                                              4.66418623831215) + (.pred_good_tune_rfo_best_1_1 * 8.34394069638368))) %>% 
-  dplyr::select(y,prob) %>% 
-  cutpointr(prob, y, method=minimize_metric, metric=roc01)
-
-cut_stc_best<- cut_stc_best$optimal_cutpoint
-
-
-cbind(cut_knn,
-      cut_pls,
-      cut_net,
-      cut_rfo,
-      cut_xgb,
-      cut_svm,
-      cut_mlp,
-      cut_stc,
-      cut_stc_best)
-
-
-
-
-# PREDIZENDO CLASSES (CLASSIFICACAO - DADOS TESTE)
-
-prob_knn<- wf_knn_trained %>% predict(df_test, type="prob")
-prob_pls<- wf_pls_trained %>% predict(df_test, type="prob")
-prob_net<- wf_net_trained %>% predict(df_test, type="prob")
-prob_rfo<- wf_rfo_trained %>% predict(df_test, type="prob")
-prob_xgb<- wf_xgb_trained %>% predict(df_test, type="prob")
-prob_svm<- wf_svm_trained %>% predict(df_test, type="prob")
-prob_mlp<- wf_mlp_trained %>% predict(df_test, type="prob")
-prob_stc<- stack_ensemble_trained %>% predict(df_test, type="prob")
-prob_stc_best<- stack_ensemble_trained_best %>% predict(df_test, type="prob")
-
-df_prob<- cbind.data.frame(df_test$y,
-                           prob_knn[,2],
-                           prob_pls[,2],
-                           prob_net[,2],
-                           prob_rfo[,2],
-                           prob_xgb[,2],
-                           prob_svm[,2],
-                           prob_mlp[,2],
-                           prob_stc[,2],
-                           prob_stc_best[,2])
-
-colnames(df_prob)<- c("y",
+colnames(df_pred)<- c("y",
                       "knn",
                       "pls",
                       "net",
@@ -885,106 +709,39 @@ colnames(df_prob)<- c("y",
                       "stc",
                       "stc_best")
 
-df_prob %>% head()    # VISUALIZANDO PROBABILIDADES
-
-df_pred_class<- df_prob %>% 
-  mutate(knn=ifelse(knn>cut_knn,"good","bad")) %>% 
-  mutate(pls=ifelse(pls>cut_pls,"good","bad")) %>% 
-  mutate(net=ifelse(net>cut_net,"good","bad")) %>% 
-  mutate(rfo=ifelse(rfo>cut_rfo,"good","bad")) %>% 
-  mutate(xgb=ifelse(xgb>cut_xgb,"good","bad")) %>% 
-  mutate(svm=ifelse(svm>cut_svm,"good","bad")) %>% 
-  mutate(mlp=ifelse(mlp>cut_mlp,"good","bad")) %>% 
-  mutate(stc=ifelse(stc>cut_stc,"good","bad")) %>%
-  mutate(stc_best=ifelse(stc_best>cut_stc_best,"good","bad")) %>% 
-  mutate(across(!y, as.factor))
-
-df_pred_class %>% head()    # VISUALIZANDO CLASSES
+df_pred %>% head()    # VISUALIZANDO PROBABILIDADES
 
 
 
 
-
-#####  VERIFICANDO MEDIDAS DE CLASSIFICAÇÃO  #####
+#####  VERIFICANDO MEDIDAS DE PREDICAO  #####
 
 # MEDIDAS
 
-medidas<- cbind(summary(conf_mat(df_pred_class, y, knn))[,-2],
-                summary(conf_mat(df_pred_class, y, pls))[,3],
-                summary(conf_mat(df_pred_class, y, net))[,3],
-                summary(conf_mat(df_pred_class, y, rfo))[,3],
-                summary(conf_mat(df_pred_class, y, xgb))[,3],
-                summary(conf_mat(df_pred_class, y, svm))[,3],
-                summary(conf_mat(df_pred_class, y, mlp))[,3],
-                summary(conf_mat(df_pred_class, y, stc))[,3],
-                summary(conf_mat(df_pred_class, y, stc_best))[,3])                     
+medidas<- rbind(
+  df_pred %>% metrics(y,knn) %>% dplyr::select(.estimate) %>% t(),
+  df_pred %>% metrics(y,pls) %>% dplyr::select(.estimate) %>% t(),
+  df_pred %>% metrics(y,net) %>% dplyr::select(.estimate) %>% t(),
+  df_pred %>% metrics(y,rfo) %>% dplyr::select(.estimate) %>% t(),
+  df_pred %>% metrics(y,xgb) %>% dplyr::select(.estimate) %>% t(),
+  df_pred %>% metrics(y,svm) %>% dplyr::select(.estimate) %>% t(),
+  df_pred %>% metrics(y,mlp) %>% dplyr::select(.estimate) %>% t(),
+  #df_pred %>% metrics(y,tbn) %>% dplyr::select(.estimate) %>% t(),
+  df_pred %>% metrics(y,stc) %>% dplyr::select(.estimate) %>% t(),
+  df_pred %>% metrics(y,stc_best) %>% dplyr::select(.estimate) %>% t())
 
-colnames(medidas)<- c("medida",
-                      "knn",
+colnames(medidas)<- c("rmse","rsq","mae")
+rownames(medidas)<- c("knn",
                       "pls",
                       "net",
                       "rfo",
                       "xgb",
                       "svm",
                       "mlp",
+                      #"tbn",
                       "stc",
                       "stc_best")
-
-# AREA ABAIXO DA CURVA ROC
-
-auc_knn<- roc_auc(df_prob, y, knn, event_level="second")[3] %>% as.numeric()
-auc_pls<- roc_auc(df_prob, y, pls, event_level="second")[3] %>% as.numeric()
-auc_net<- roc_auc(df_prob, y, net, event_level="second")[3] %>% as.numeric()
-auc_rfo<- roc_auc(df_prob, y, rfo, event_level="second")[3] %>% as.numeric()
-auc_xgb<- roc_auc(df_prob, y, xgb, event_level="second")[3] %>% as.numeric()
-auc_svm<- roc_auc(df_prob, y, svm, event_level="second")[3] %>% as.numeric()
-auc_mlp<- roc_auc(df_prob, y, mlp, event_level="second")[3] %>% as.numeric()
-auc_stc<- roc_auc(df_prob, y, stc, event_level="second")[3] %>% as.numeric()
-auc_stc_best<- roc_auc(df_prob, y, stc_best, event_level="second")[3] %>% as.numeric()
-
-auc<- cbind(auc_knn,
-            auc_pls,
-            auc_net,
-            auc_rfo,
-            auc_xgb,
-            auc_svm,
-            auc_mlp,
-            auc_stc,
-            auc_stc_best)
-
-
-# ADICIONANDO AREA DA CURVA ROC AS DEMAIS MEDIDAS
-
-medidas<- rbind(medidas,c("roc_auc",auc))
-medidas[,-1]<- lapply(medidas[,-1], as.numeric)
-medidas[,-1]<- medidas[,-1] %>% round(4)
 medidas
-
-
-# CURVA ROC
-
-cbind(roc_curve(df_prob, y, knn, event_level="second"),modelo="K Nearest Neighbors") %>% 
-  rbind(cbind(roc_curve(df_prob, y, pls, event_level="second"),modelo="Partial Least Squares")) %>% 
-  rbind(cbind(roc_curve(df_prob, y, net, event_level="second"),modelo="Logistic Reg E-N")) %>% 
-  rbind(cbind(roc_curve(df_prob, y, rfo, event_level="second"),modelo="Random Forest")) %>% 
-  rbind(cbind(roc_curve(df_prob, y, xgb, event_level="second"),modelo="XGBoosting")) %>% 
-  rbind(cbind(roc_curve(df_prob, y, svm, event_level="second"),modelo="Support Vector Machine")) %>%
-  rbind(cbind(roc_curve(df_prob, y, mlp, event_level="second"),modelo="Multi Layer Perceptron")) %>% 
-  rbind(cbind(roc_curve(df_prob, y, stc, event_level="second"),modelo="stacking ensemble")) %>%
-  rbind(cbind(roc_curve(df_prob, y, stc_best, event_level="second"),modelo="stacking ensemble of bests")) %>% 
-  ggplot(aes(x=1-specificity, y=sensitivity, color=modelo)) + 
-  geom_path() + 
-  geom_abline(lty=3) + 
-  coord_equal() + 
-  xlab("1-Especificidade") + 
-  ylab("Sensibilidade") +
-  theme_bw()
-
-
-# MATRIZ DE CONFUSAO - MELHOR MODELO
-
-conf_mat(df_pred_class, y, stc_best)
-
 
 
 
@@ -995,9 +752,9 @@ conf_mat(df_pred_class, y, stc_best)
 ## STACKING
 
 tic()
-explainer_stc<- explain_tidymodels(model=stack_ensemble_trained_best,
+explainer_stc<- explain_tidymodels(model=stack_ensemble_trained,
                                    data=dplyr::select(df_train,-y),
-                                   y=df_train$y=="good",
+                                   y=df_train$y,
                                    #label="Stacking")
                                    label="")
 toc()
@@ -1042,8 +799,8 @@ profile_stc %>% plot(geom = "aggregates",
                      #title="",
                      subtitle="")
 
-explainer_stc %>% model_profile(variables=c("alcohol","sulphates")) %>% plot(geom = "profiles")
-explainer_stc %>% model_profile(variables=c("alcohol","sulphates")) %>% plot(geom = "points")
+#explainer_stc %>% model_profile(variables=c("alcohol","sulphates")) %>% plot(geom = "profiles")
+#explainer_stc %>% model_profile(variables=c("alcohol","sulphates")) %>% plot(geom = "points")
 
 
 profile_stc$agr_profiles %>% 

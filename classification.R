@@ -1047,8 +1047,8 @@ profile_stc %>% plot(geom = "aggregates",
                      #title="",
                      subtitle="")
 
-explainer_stc %>% model_profile(variables=c("alcohol","sulphates")) %>% plot(geom = "profiles")
-explainer_stc %>% model_profile(variables=c("alcohol","sulphates")) %>% plot(geom = "points")
+#explainer_stc %>% model_profile(variables=c("alcohol","sulphates")) %>% plot(geom = "profiles")
+#explainer_stc %>% model_profile(variables=c("alcohol","sulphates")) %>% plot(geom = "points")
 
 
 profile_stc$agr_profiles %>% 
