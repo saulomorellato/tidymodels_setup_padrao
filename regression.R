@@ -216,7 +216,7 @@ tune_knn<- tune_bayes(wf_knn,
                       control = control_bayes(save_pred=TRUE,
                                               save_workflow=TRUE,
                                               seed=0),
-                      metrics = metric_set(roc_auc),
+                      metrics = metric_set(mae),
                       param_info = parameters(neighbors(range=c(1,min(200,trunc(0.25*nrow(df_train))))),
                                               dist_power(range=c(1,2)),
                                               weight_func(c("epanechnikov",
@@ -243,7 +243,7 @@ tune_knn_best<- tune_grid(wf_knn,
                           grid = show_best(tune_knn,metric="mae",n=1)[1:5],
                           control = control_bayes(save_pred=TRUE,
                                                   save_workflow=TRUE),
-                          metrics = metric_set(roc_auc))
+                          metrics = metric_set(mae))
 toc()
 
 
@@ -257,7 +257,7 @@ tune_pls<- tune_bayes(wf_pls,
                       control = control_bayes(save_pred=TRUE,
                                               save_workflow=TRUE,
                                               seed=0),
-                      metrics = metric_set(roc_auc),
+                      metrics = metric_set(mae),
                       param_info = parameters(num_comp(range=c(1,min(100,trunc(0.75*ncol(df_train))))),
                                               predictor_prop(range=c(0,1)))#,
                       #threshold(range=c(0.7,1)),
@@ -286,7 +286,7 @@ tune_net<- tune_bayes(wf_net,
                       control = control_bayes(save_pred=TRUE,
                                               save_workflow=TRUE,
                                               seed=0),
-                      metrics = metric_set(roc_auc),
+                      metrics = metric_set(mae),
                       param_info = parameters(penalty(range=c(-10,5)),
                                               mixture(range=c(0,1)))#,
                       #threshold(range=c(0.7,1)),
@@ -301,7 +301,7 @@ tune_net_best<- tune_grid(wf_net,
                           grid = show_best(tune_net,metric="mae",n=1)[1:2],
                           control = control_bayes(save_pred=TRUE,
                                                   save_workflow=TRUE),
-                          metrics = metric_set(roc_auc))
+                          metrics = metric_set(mae))
 toc()
 
 
@@ -315,7 +315,7 @@ tune_rfo<- tune_bayes(wf_rfo,
                       control = control_bayes(save_pred=TRUE,
                                               save_workflow=TRUE,
                                               seed=0),
-                      metrics = metric_set(roc_auc),
+                      metrics = metric_set(mae),
                       param_info = parameters(mtry(range=c(1,trunc(0.9*ncol(df_train)))),
                                               min_n(range=c(1,min(200,trunc(0.25*nrow(df_train))))))#,
                       #threshold(range=c(0.7,1)),
@@ -330,7 +330,7 @@ tune_rfo_best<- tune_grid(wf_rfo,
                           grid = show_best(tune_rfo,metric="mae",n=1)[1:2],
                           control = control_bayes(save_pred=TRUE,
                                                   save_workflow=TRUE),
-                          metrics = metric_set(roc_auc))
+                          metrics = metric_set(mae))
 toc()
 
 
@@ -344,7 +344,7 @@ tune_xgb<- tune_bayes(wf_xgb,
                       control = control_bayes(save_pred=TRUE,
                                               save_workflow=TRUE,
                                               seed=0),
-                      metrics = metric_set(roc_auc),
+                      metrics = metric_set(mae),
                       param_info = parameters(mtry(range=c(1,trunc(0.9*ncol(df_train)))),
                                               min_n(range=c(1,min(200,trunc(0.25*nrow(df_train))))),
                                               loss_reduction(range=c(-10,5)),
@@ -361,7 +361,7 @@ tune_xgb_best<- tune_grid(wf_xgb,
                           grid = show_best(tune_xgb,metric="mae",n=1)[1:4],
                           control = control_bayes(save_pred=TRUE,
                                                   save_workflow=TRUE),
-                          metrics = metric_set(roc_auc))
+                          metrics = metric_set(mae))
 toc()
 
 
@@ -375,7 +375,7 @@ tune_svm<- tune_bayes(wf_svm,
                       control = control_bayes(save_pred=TRUE,
                                               save_workflow=TRUE,
                                               seed=0),
-                      metrics = metric_set(roc_auc),
+                      metrics = metric_set(mae),
                       param_info = parameters(cost(range=c(-10,5)),
                                               svm_margin(range=c(0,0.5)),
                                               rbf_sigma(range=c(-10,5)),
@@ -393,7 +393,7 @@ tune_svm_best<- tune_grid(wf_svm,
                           grid = show_best(tune_svm,metric="mae",n=1)[1:5],
                           control = control_bayes(save_pred=TRUE,
                                                   save_workflow=TRUE),
-                          metrics = metric_set(roc_auc))
+                          metrics = metric_set(mae))
 toc()
 
 
@@ -407,7 +407,7 @@ tune_mlp<- tune_bayes(wf_mlp,
                       control = control_bayes(save_pred=TRUE,
                                               save_workflow=TRUE,
                                               seed=0),
-                      metrics = metric_set(roc_auc),
+                      metrics = metric_set(mae),
                       param_info = parameters(hidden_units(range=c(8,1024)),
                                               dropout(range=c(0.2,0.8)),
                                               learn_rate(range=c(-10,0)))#,
@@ -423,7 +423,7 @@ tune_mlp_best<- tune_grid(wf_mlp,
                           grid = show_best(tune_mlp,metric="mae",n=1)[1:3],
                           control = control_bayes(save_pred=TRUE,
                                                   save_workflow=TRUE),
-                          metrics = metric_set(roc_auc))
+                          metrics = metric_set(mae))
 toc()
 
 
@@ -437,7 +437,7 @@ toc()
 #                       control = control_bayes(save_pred=TRUE,
 #                                               save_workflow=TRUE,
 #                                               seed=0),
-#                       metrics = metric_set(roc_auc),
+#                       metrics = metric_set(mae),
 #                       param_info = parameters(penalty(range=c(-10,5)),
 #                                               learn_rate(range=c(-10,0)),
 #                                               decision_width(range=c(4,80)),
@@ -455,7 +455,7 @@ toc()
 #                           grid = show_best(tune_tbn,n=1)[,1],
 #                           control = control_bayes(save_pred=TRUE,
 #                                                   save_workflow=TRUE),
-#                           metrics = metric_set(roc_auc))
+#                           metrics = metric_set(mae))
 # toc()
 
 
@@ -509,7 +509,7 @@ stack_ensemble_model<- stack_ensemble_data %>%
                     control = control_grid(save_pred=TRUE,
                                            save_workflow=TRUE),
                     non_negative = TRUE,
-                    metric = metric_set(roc_auc))
+                    metric = metric_set(mae))
 
 
 set.seed(0)
@@ -519,7 +519,7 @@ stack_ensemble_model_best<- stack_ensemble_data_best %>%
                     control = control_grid(save_pred=FALSE,
                                            save_workflow=TRUE),
                     non_negative = TRUE,
-                    metric = metric_set(roc_auc))
+                    metric = metric_set(mae))
 
 autoplot(stack_ensemble_model)
 autoplot(stack_ensemble_model,type = "weights")
