@@ -521,7 +521,7 @@ set.seed(0)
 stack_ensemble_model_best<- stack_ensemble_data_best %>% 
   blend_predictions(penalty = 10^(-9:3),
                     mixture = seq(0,1,by=0.1), # 0=RIDGE; 1=LASSO
-                    control = control_grid(save_pred=TRUE,
+                    control = control_grid(save_pred=FALSE,
                                            save_workflow=TRUE),
                     non_negative = TRUE,
                     metric = metric_set(roc_auc))
@@ -811,16 +811,18 @@ cut_mlp<- cut_mlp$optimal_cutpoint
 #stack_ensemble_model$equations$prob$.pred_good
 
 cut_stc<- stack_ensemble_model$data_stack %>% 
-  mutate(prob=stats::binomial()$linkinv(-1986.1887500958 + (.pred_good_tune_pls_1_06 * 
-    6.24833391443496) + (.pred_good_tune_rfo_1_04 * 6.15661550343039) + 
-    (.pred_good_tune_rfoIter1 * 1.60432421570565) + (.pred_good_tune_xgbIter10 * 
-    2625.49171927685) + (.pred_good_tune_xgb_1_01 * 2411.75034202656) + 
-    (.pred_good_tune_svmIter6 * 141.84471730588) + (.pred_good_tune_svmIter1 * 
-    892.629042166445) + (.pred_good_tune_svm_03_1 * 34.1432529250141) + 
-    (.pred_good_tune_svm_04_1 * 119.398543489093) + (.pred_good_tune_mlp_1_05 * 
-    5.9902197320082) + (.pred_good_tune_mlp_1_03 * 7.38638864651588) + 
-    (.pred_good_tune_mlp_1_10 * 2.04554003925663) + (.pred_good_tune_mlp_1_07 * 
-    0.858245004475694))) %>% 
+  mutate(prob=stats::binomial()$linkinv(-271.512022989899 + (.pred_good_tune_plsIter6 * 
+                                                               3.57066307164952) + (.pred_good_tune_plsIter5 * 3.53813678217686) + 
+                                          (.pred_good_tune_pls_1_10 * 4.2308936708972) + (.pred_good_tune_rfoIter1 * 
+                                                                                            0.691878790345409) + (.pred_good_tune_rfo_1_04 * 3.32365465641122) + 
+                                          (.pred_good_tune_rfoIter4 * 1.13741737842188) + (.pred_good_tune_xgb_1_02 * 
+                                                                                             901.764713952155) + (.pred_good_tune_xgbIter7 * 0.501434668321488) + 
+                                          (.pred_good_tune_svm_03_1 * 17.4600676944194) + (.pred_good_tune_svm_08_1 * 
+                                                                                             33.394142778468) + (.pred_good_tune_svm_01_1 * 29.1280960447429) + 
+                                          (.pred_good_tune_mlp_1_02 * 3.53829699527865) + (.pred_good_tune_mlp_1_04 * 
+                                                                                             0.183078870444202) + (.pred_good_tune_mlpIter10 * 0.101883541129689) + 
+                                          (.pred_good_tune_mlp_1_07 * 1.38013737256325) + (.pred_good_tune_mlp_1_10 * 
+                                                                                             1.89222460821035))) %>% 
   dplyr::select(y,prob) %>% 
   cutpointr(prob, y, method=minimize_metric, metric=roc01)
 
@@ -833,16 +835,8 @@ cut_stc<- cut_stc$optimal_cutpoint
 #stack_ensemble_model_best$equations$prob$.pred_good
 
 cut_stc_best<- stack_ensemble_model_best$data_stack %>% 
-  mutate(prob=stats::binomial()$linkinv(-1986.1887500958 + (.pred_good_tune_pls_1_06 * 
-                                                              6.24833391443496) + (.pred_good_tune_rfo_1_04 * 6.15661550343039) + 
-                                          (.pred_good_tune_rfoIter1 * 1.60432421570565) + (.pred_good_tune_xgbIter10 * 
-                                                                                             2625.49171927685) + (.pred_good_tune_xgb_1_01 * 2411.75034202656) + 
-                                          (.pred_good_tune_svmIter6 * 141.84471730588) + (.pred_good_tune_svmIter1 * 
-                                                                                            892.629042166445) + (.pred_good_tune_svm_03_1 * 34.1432529250141) + 
-                                          (.pred_good_tune_svm_04_1 * 119.398543489093) + (.pred_good_tune_mlp_1_05 * 
-                                                                                             5.9902197320082) + (.pred_good_tune_mlp_1_03 * 7.38638864651588) + 
-                                          (.pred_good_tune_mlp_1_10 * 2.04554003925663) + (.pred_good_tune_mlp_1_07 * 
-                                                                                             0.858245004475694))) %>% 
+  mutate(prob=stats::binomial()$linkinv(-5.3911213779068 + (.pred_good_tune_pls_best_1_1 * 
+                                                              4.66418623831215) + (.pred_good_tune_rfo_best_1_1 * 8.34394069638368))) %>% 
   dplyr::select(y,prob) %>% 
   cutpointr(prob, y, method=minimize_metric, metric=roc01)
 
@@ -856,7 +850,8 @@ cbind(cut_knn,
       cut_xgb,
       cut_svm,
       cut_mlp,
-      cut_stc)
+      cut_stc,
+      cut_stc_best)
 
 
 
@@ -871,6 +866,7 @@ prob_xgb<- wf_xgb_trained %>% predict(df_test, type="prob")
 prob_svm<- wf_svm_trained %>% predict(df_test, type="prob")
 prob_mlp<- wf_mlp_trained %>% predict(df_test, type="prob")
 prob_stc<- stack_ensemble_trained %>% predict(df_test, type="prob")
+prob_stc_best<- stack_ensemble_trained_best %>% predict(df_test, type="prob")
 
 df_prob<- cbind.data.frame(df_test$y,
                            prob_knn[,2],
@@ -880,7 +876,8 @@ df_prob<- cbind.data.frame(df_test$y,
                            prob_xgb[,2],
                            prob_svm[,2],
                            prob_mlp[,2],
-                           prob_stc[,2])
+                           prob_stc[,2],
+                           prob_stc_best[,2])
 
 colnames(df_prob)<- c("y",
                       "knn",
@@ -890,7 +887,8 @@ colnames(df_prob)<- c("y",
                       "xgb",
                       "svm",
                       "mlp",
-                      "stc")
+                      "stc",
+                      "stc_best")
 
 df_prob %>% head()    # VISUALIZANDO PROBABILIDADES
 
@@ -902,7 +900,8 @@ df_pred_class<- df_prob %>%
   mutate(xgb=ifelse(xgb>cut_xgb,"good","bad")) %>% 
   mutate(svm=ifelse(svm>cut_svm,"good","bad")) %>% 
   mutate(mlp=ifelse(mlp>cut_mlp,"good","bad")) %>% 
-  mutate(stc=ifelse(stc>cut_stc,"good","bad")) %>% 
+  mutate(stc=ifelse(stc>cut_stc,"good","bad")) %>%
+  mutate(stc_best=ifelse(stc_best>cut_stc_best,"good","bad")) %>% 
   mutate(across(!y, as.factor))
 
 df_pred_class %>% head()    # VISUALIZANDO CLASSES
@@ -922,7 +921,8 @@ medidas<- cbind(summary(conf_mat(df_pred_class, y, knn))[,-2],
                 summary(conf_mat(df_pred_class, y, xgb))[,3],
                 summary(conf_mat(df_pred_class, y, svm))[,3],
                 summary(conf_mat(df_pred_class, y, mlp))[,3],
-                summary(conf_mat(df_pred_class, y, stc))[,3])                     
+                summary(conf_mat(df_pred_class, y, stc))[,3],
+                summary(conf_mat(df_pred_class, y, stc_best))[,3])                     
 
 colnames(medidas)<- c("medida",
                       "knn",
@@ -932,7 +932,8 @@ colnames(medidas)<- c("medida",
                       "xgb",
                       "svm",
                       "mlp",
-                      "stc")
+                      "stc",
+                      "stc_best")
 
 # AREA ABAIXO DA CURVA ROC
 
@@ -944,6 +945,7 @@ auc_xgb<- roc_auc(df_prob, y, xgb, event_level="second")[3] %>% as.numeric()
 auc_svm<- roc_auc(df_prob, y, svm, event_level="second")[3] %>% as.numeric()
 auc_mlp<- roc_auc(df_prob, y, mlp, event_level="second")[3] %>% as.numeric()
 auc_stc<- roc_auc(df_prob, y, stc, event_level="second")[3] %>% as.numeric()
+auc_stc_best<- roc_auc(df_prob, y, stc_best, event_level="second")[3] %>% as.numeric()
 
 auc<- cbind(auc_knn,
             auc_pls,
@@ -952,7 +954,8 @@ auc<- cbind(auc_knn,
             auc_xgb,
             auc_svm,
             auc_mlp,
-            auc_stc)
+            auc_stc,
+            auc_stc_best)
 
 
 # ADICIONANDO AREA DA CURVA ROC AS DEMAIS MEDIDAS
@@ -972,7 +975,8 @@ cbind(roc_curve(df_prob, y, knn, event_level="second"),modelo="K Nearest Neighbo
   rbind(cbind(roc_curve(df_prob, y, xgb, event_level="second"),modelo="XGBoosting")) %>% 
   rbind(cbind(roc_curve(df_prob, y, svm, event_level="second"),modelo="Support Vector Machine")) %>%
   rbind(cbind(roc_curve(df_prob, y, mlp, event_level="second"),modelo="Multi Layer Perceptron")) %>% 
-  rbind(cbind(roc_curve(df_prob, y, stc, event_level="second"),modelo="stacking ensemble")) %>% 
+  rbind(cbind(roc_curve(df_prob, y, stc, event_level="second"),modelo="stacking ensemble")) %>%
+  rbind(cbind(roc_curve(df_prob, y, stc_best, event_level="second"),modelo="stacking ensemble of bests")) %>% 
   ggplot(aes(x=1-specificity, y=sensitivity, color=modelo)) + 
   geom_path() + 
   geom_abline(lty=3) + 
@@ -984,7 +988,7 @@ cbind(roc_curve(df_prob, y, knn, event_level="second"),modelo="K Nearest Neighbo
 
 # MATRIZ DE CONFUSAO - MELHOR MODELO
 
-conf_mat(df_pred_class, y, rfo)
+conf_mat(df_pred_class, y, stc_best)
 
 
 
@@ -996,7 +1000,7 @@ conf_mat(df_pred_class, y, rfo)
 ## STACKING
 
 tic()
-explainer_stc<- explain_tidymodels(model=stack_ensemble_trained,
+explainer_stc<- explain_tidymodels(model=stack_ensemble_trained_best,
                                    data=dplyr::select(df_train,-y),
                                    y=df_train$y=="good",
                                    #label="Stacking")
@@ -1074,7 +1078,7 @@ df_alcohol %>%
   geom_point() +
   #geom_smooth(method = "lm", formula = y ~ poly(x, 3), se = FALSE) +
   #geom_smooth(method = "loess", se = FALSE) + 
-  geom_smooth(formula = y ~ s(x, k = 20), method = "gam", se = FALSE) + 
+  geom_smooth(formula = y ~ s(x, k = 10), method = "gam", se = FALSE) + 
   ylab("Probabilidade de Good") +
   xlab("alcohol") +
   ggtitle("Ceteris Paribus profile") + 
