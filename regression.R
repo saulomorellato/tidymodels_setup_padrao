@@ -38,7 +38,7 @@ split<- initial_split(df, prop=0.8, strata=y)
 df_train<- training(split)    # usado para cross-validation
 df_test<- testing(split)      # usado para verificar desempenho
 
-folds<- vfold_cv(df_train, v=2, repeats=5, strata=y)
+folds<- vfold_cv(df_train, v=10, strata=y)
 
 
 
