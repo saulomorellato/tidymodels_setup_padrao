@@ -150,7 +150,7 @@ model_svm<- svm_rbf(cost = tune(),
 #   set_mode("classification")
 
 
-model_mlp <- mlp(epochs = 30,
+model_mlp <- mlp(epochs = 50,
                  hidden_units = tune(),
                  dropout = tune(),
                  learn_rate = tune(),
@@ -710,30 +710,33 @@ cut_mlp<- cut_mlp$optimal_cutpoint
 
 ## CORTE STACKING
 
-cut_stc<- stack_ensemble_trained %>% predict(df_train, type="prob") %>% 
-  cutpointr(prob, auto_suficiencia_financeira, method=minimize_metric, metric=roc01)
+#stack_ensemble_model$equations$prob$.pred_good
+
+cut_stc<- stack_ensemble_model$data_stack %>% 
+  mutate(prob=stats::binomial()$linkinv(-1986.1887500958 + (.pred_good_tune_pls_1_06 * 
+    6.24833391443496) + (.pred_good_tune_rfo_1_04 * 6.15661550343039) + 
+    (.pred_good_tune_rfoIter1 * 1.60432421570565) + (.pred_good_tune_xgbIter10 * 
+    2625.49171927685) + (.pred_good_tune_xgb_1_01 * 2411.75034202656) + 
+    (.pred_good_tune_svmIter6 * 141.84471730588) + (.pred_good_tune_svmIter1 * 
+    892.629042166445) + (.pred_good_tune_svm_03_1 * 34.1432529250141) + 
+    (.pred_good_tune_svm_04_1 * 119.398543489093) + (.pred_good_tune_mlp_1_05 * 
+    5.9902197320082) + (.pred_good_tune_mlp_1_03 * 7.38638864651588) + 
+    (.pred_good_tune_mlp_1_10 * 2.04554003925663) + (.pred_good_tune_mlp_1_07 * 
+    0.858245004475694))) %>% 
+  dplyr::select(y,prob) %>% 
+  cutpointr(prob, y, method=minimize_metric, metric=roc01)
 
 cut_stc<- cut_stc$optimal_cutpoint
 
 
-cut_stc<- stack_ensemble_model$
 
-cut_stc<- cut_stc$optimal_cutpoint
-
-
-cut_stc<- summary(df_train$auto_suficiencia_financeira)[2]/nrow(df_train)
-
-
-
-
-
-
-
-cbind(cut_pls,
+cbind(cut_knn,
+      cut_pls,
       cut_net,
       cut_rfo,
       cut_xgb,
       cut_svm,
+      cut_mlp,
       cut_stc)
 
 
@@ -741,33 +744,47 @@ cbind(cut_pls,
 
 # PREDIZENDO CLASSES (CLASSIFICACAO - DADOS TESTE)
 
-prob_pls<- wf_pls_trained %>% predict.model_fit(df_test, type="prob")
+prob_knn<- wf_knn_trained %>% predict(df_test, type="prob")
+prob_pls<- wf_pls_trained %>% predict(df_test, type="prob")
 prob_net<- wf_net_trained %>% predict(df_test, type="prob")
 prob_rfo<- wf_rfo_trained %>% predict(df_test, type="prob")
 prob_xgb<- wf_xgb_trained %>% predict(df_test, type="prob")
 prob_svm<- wf_svm_trained %>% predict(df_test, type="prob")
+prob_mlp<- wf_mlp_trained %>% predict(df_test, type="prob")
 prob_stc<- stack_ensemble_trained %>% predict(df_test, type="prob")
 
-df_prob<- cbind.data.frame(df_test$DEATH_EVENT,
+df_prob<- cbind.data.frame(df_test$y,
+                           prob_knn[,2],
+                           prob_pls[,2],
                            prob_net[,2],
                            prob_rfo[,2],
                            prob_xgb[,2],
-                           prob_svm[,2])
+                           prob_svm[,2],
+                           prob_mlp[,2],
+                           prob_stc[,2])
 
-colnames(df_prob)<- c("DEATH_EVENT",
+colnames(df_prob)<- c("y",
+                      "knn",
+                      "pls",
                       "net",
                       "rfo",
                       "xgb",
-                      "svm")
+                      "svm",
+                      "mlp",
+                      "stc")
 
 df_prob %>% head()    # VISUALIZANDO PROBABILIDADES
 
 df_pred_class<- df_prob %>% 
-  mutate(net=ifelse(net>cut_net,1,0)) %>% 
-  mutate(rfo=ifelse(rfo>cut_rfo,1,0)) %>% 
-  mutate(xgb=ifelse(xgb>cut_xgb,1,0)) %>% 
-  mutate(svm=ifelse(svm>cut_svm,1,0)) %>% 
-  mutate(across(!DEATH_EVENT, as.factor))
+  mutate(knn=ifelse(knn>cut_knn,"good","bad")) %>% 
+  mutate(pls=ifelse(pls>cut_pls,"good","bad")) %>% 
+  mutate(net=ifelse(net>cut_net,"good","bad")) %>% 
+  mutate(rfo=ifelse(rfo>cut_rfo,"good","bad")) %>% 
+  mutate(xgb=ifelse(xgb>cut_xgb,"good","bad")) %>% 
+  mutate(svm=ifelse(svm>cut_svm,"good","bad")) %>% 
+  mutate(mlp=ifelse(mlp>cut_mlp,"good","bad")) %>% 
+  mutate(stc=ifelse(stc>cut_stc,"good","bad")) %>% 
+  mutate(across(!y, as.factor))
 
 df_pred_class %>% head()    # VISUALIZANDO CLASSES
 
@@ -777,33 +794,66 @@ df_pred_class %>% head()    # VISUALIZANDO CLASSES
 
 #####  VERIFICANDO MEDIDAS DE CLASSIFICAÇÃO  #####
 
-medidas<- cbind(summary(conf_mat(df_pred_class, DEATH_EVENT, net))[,-2],
-                summary(conf_mat(df_pred_class, DEATH_EVENT, rfo))[,3],
-                summary(conf_mat(df_pred_class, DEATH_EVENT, xgb))[,3],
-                summary(conf_mat(df_pred_class, DEATH_EVENT, svm))[,3])                     
+# MEDIDAS
+
+medidas<- cbind(summary(conf_mat(df_pred_class, y, knn))[,-2],
+                summary(conf_mat(df_pred_class, y, pls))[,3],
+                summary(conf_mat(df_pred_class, y, net))[,3],
+                summary(conf_mat(df_pred_class, y, rfo))[,3],
+                summary(conf_mat(df_pred_class, y, xgb))[,3],
+                summary(conf_mat(df_pred_class, y, svm))[,3],
+                summary(conf_mat(df_pred_class, y, mlp))[,3],
+                summary(conf_mat(df_pred_class, y, stc))[,3])                     
 
 colnames(medidas)<- c("medida",
+                      "knn",
+                      "pls",
                       "net",
                       "rfo",
                       "xgb",
-                      "svm")
+                      "svm",
+                      "mlp",
+                      "stc")
 
+# AREA ABAIXO DA CURVA ROC
+
+auc_knn<- roc_auc(df_prob, y, knn, event_level="second")[3] %>% as.numeric()
+auc_pls<- roc_auc(df_prob, y, pls, event_level="second")[3] %>% as.numeric()
+auc_net<- roc_auc(df_prob, y, net, event_level="second")[3] %>% as.numeric()
+auc_rfo<- roc_auc(df_prob, y, rfo, event_level="second")[3] %>% as.numeric()
+auc_xgb<- roc_auc(df_prob, y, xgb, event_level="second")[3] %>% as.numeric()
+auc_svm<- roc_auc(df_prob, y, svm, event_level="second")[3] %>% as.numeric()
+auc_mlp<- roc_auc(df_prob, y, mlp, event_level="second")[3] %>% as.numeric()
+auc_stc<- roc_auc(df_prob, y, stc, event_level="second")[3] %>% as.numeric()
+
+auc<- cbind(auc_knn,
+            auc_pls,
+            auc_net,
+            auc_rfo,
+            auc_xgb,
+            auc_svm,
+            auc_mlp,
+            auc_stc)
+
+
+# ADICIONANDO AREA DA CURVA ROC AS DEMAIS MEDIDAS
+
+medidas<- rbind(medidas,c("roc_auc",auc))
+medidas[,-1]<- lapply(medidas[,-1], as.numeric)
+medidas[,-1]<- medidas[,-1] %>% round(4)
 medidas
-
-
-
-# MATRIZ DE CONFUSAO
-
-conf_mat(df_pred_class, DEATH_EVENT, rfo)
-
 
 
 # CURVA ROC
 
-cbind(roc_curve(df_prob, DEATH_EVENT, net, event_level="second"),modelo="Elastic-Net") %>% 
-  rbind(cbind(roc_curve(df_prob, DEATH_EVENT, rfo, event_level="second"),modelo="Random Forest")) %>% 
-  rbind(cbind(roc_curve(df_prob, DEATH_EVENT, xgb, event_level="second"),modelo="XGBoosting")) %>% 
-  rbind(cbind(roc_curve(df_prob, DEATH_EVENT, svm, event_level="second"),modelo="Support Vector Machine")) %>% 
+cbind(roc_curve(df_prob, y, knn, event_level="second"),modelo="K Nearest Neighbors") %>% 
+  rbind(cbind(roc_curve(df_prob, y, pls, event_level="second"),modelo="Partial Least Squares")) %>% 
+  rbind(cbind(roc_curve(df_prob, y, net, event_level="second"),modelo="Logistic Reg E-N")) %>% 
+  rbind(cbind(roc_curve(df_prob, y, rfo, event_level="second"),modelo="Random Forest")) %>% 
+  rbind(cbind(roc_curve(df_prob, y, xgb, event_level="second"),modelo="XGBoosting")) %>% 
+  rbind(cbind(roc_curve(df_prob, y, svm, event_level="second"),modelo="Support Vector Machine")) %>%
+  rbind(cbind(roc_curve(df_prob, y, mlp, event_level="second"),modelo="Multi Layer Perceptron")) %>% 
+  rbind(cbind(roc_curve(df_prob, y, stc, event_level="second"),modelo="stacking ensemble")) %>% 
   ggplot(aes(x=1-specificity, y=sensitivity, color=modelo)) + 
   geom_path() + 
   geom_abline(lty=3) + 
@@ -813,121 +863,23 @@ cbind(roc_curve(df_prob, DEATH_EVENT, net, event_level="second"),modelo="Elastic
   theme_bw()
 
 
+# MATRIZ DE CONFUSAO - MELHOR MODELO
 
+conf_mat(df_pred_class, y, rfo)
 
-# AREA ABAIXO DA CURVA ROC
-
-auc_net<- roc_auc(df_prob, DEATH_EVENT, net, event_level="second")[3] %>% as.numeric()
-auc_rfo<- roc_auc(df_prob, DEATH_EVENT, rfo, event_level="second")[3] %>% as.numeric()
-auc_xgb<- roc_auc(df_prob, DEATH_EVENT, xgb, event_level="second")[3] %>% as.numeric()
-auc_svm<- roc_auc(df_prob, DEATH_EVENT, svm, event_level="second")[3] %>% as.numeric()
-
-auc<- cbind(auc_net,
-            auc_rfo,
-            auc_xgb,
-            auc_svm)
-
-colnames(auc)<- c("net",
-                  "rfo",
-                  "xgb",
-                  "svm")
-
-auc
-
-
-#####  FEATURE/VARIABLE IMPORTANCE  #####
-
-## ELASTIC-NET
-
-explainer_net<- explain_tidymodels(model=wf_net_trained,
-                                   data=dplyr::select(df_train,-ROA),
-                                   y=df_train$ROA,
-                                   label="Elastic-Net")
-
-vi_net<- model_parts(explainer_net,
-                     type="variable_importance")
-
-vi_net %>% as.data.frame() %>% 
-  dplyr::filter(variable!="_full_model_",
-                variable!="_baseline_") %>% 
-  dplyr::rename(importance = dropout_loss) %>% 
-  dplyr::select(-c(permutation,label)) %>% 
-  group_by(variable) %>% 
-  summarise(importance = mean(importance)) %>% 
-  dplyr::arrange(desc(importance))
-
-
-
-## RANDOM FOREST
-
-explainer_rfo<- explain_tidymodels(model=wf_rfo_trained,
-                                   data=dplyr::select(df_train,-ROA),
-                                   y=df_train$ROA,
-                                   label="Random Forest")
-
-vi_rfo<- model_parts(explainer_rfo,
-                     type="variable_importance")
-
-vi_rfo %>% as.data.frame() %>% 
-  dplyr::filter(variable!="_full_model_",
-                variable!="_baseline_") %>% 
-  dplyr::rename(importance = dropout_loss) %>% 
-  dplyr::select(-c(permutation,label)) %>% 
-  group_by(variable) %>% 
-  summarise(importance = mean(importance)) %>% 
-  dplyr::arrange(desc(importance))
-
-
-
-## XGBOOSTING
-
-explainer_xgb<- explain_tidymodels(model=wf_xgb_trained,
-                                   data=dplyr::select(df_train,-ROA),
-                                   y=df_train$ROA,
-                                   label="XGBoosting")
-
-vi_xgb<- model_parts(explainer_xgb,
-                     type="variable_importance")
-
-vi_xgb %>% as.data.frame() %>% 
-  dplyr::filter(variable!="_full_model_",
-                variable!="_baseline_") %>% 
-  dplyr::rename(importance = dropout_loss) %>% 
-  dplyr::select(-c(permutation,label)) %>% 
-  group_by(variable) %>% 
-  summarise(importance = mean(importance)) %>% 
-  dplyr::arrange(desc(importance))
 
 
 
 
-## SUPPORT VECTOR MACHINE
-
-explainer_svm<- explain_tidymodels(model=wf_svm_trained,
-                                   data=dplyr::select(df_train,-ROA),
-                                   y=df_train$ROA,
-                                   label="Support Vector Machine")
-
-vi_svm<- model_parts(explainer_svm,
-                     type="variable_importance")
-
-vi_svm %>% as.data.frame() %>% 
-  dplyr::filter(variable!="_full_model_",
-                variable!="_baseline_") %>% 
-  dplyr::rename(importance = dropout_loss) %>% 
-  dplyr::select(-c(permutation,label)) %>% 
-  group_by(variable) %>% 
-  summarise(importance = mean(importance)) %>% 
-  dplyr::arrange(desc(importance))
-
+#####  FEATURE/VARIABLE IMPORTANCE  #####
 
 
 ## STACKING
 
 tic()
 explainer_stc<- explain_tidymodels(model=stack_ensemble_trained,
-                                   data=dplyr::select(df_train,-auto_suficiencia_financeira),
-                                   y=df_train$auto_suficiencia_financeira=="Sim",
+                                   data=dplyr::select(df_train,-y),
+                                   y=df_train$y=="good",
                                    label="Stacking")
 toc()
 
