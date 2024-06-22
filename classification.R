@@ -551,16 +551,16 @@ wf_mlp_trained<- wf_mlp %>% finalize_workflow(select_best(tune_mlp,metric="roc_a
 
 ## SALVANDO OS MODELOS
 
-saveRDS(wf_knn_trained,"wf_knn_trained.rds")
-saveRDS(wf_pls_trained,"wf_pls_trained.rds")
-saveRDS(wf_net_trained,"wf_net_trained.rds")
-saveRDS(wf_rfo_trained,"wf_rfo_trained.rds")
-saveRDS(wf_xgb_trained,"wf_xgb_trained.rds")
-saveRDS(wf_svm_trained,"wf_svm_trained.rds")
-saveRDS(wf_mlp_trained,"wf_mlp_trained.rds")
-#saveRDS(wf_tbn_trained,"wf_tbn_trained.rds")
-saveRDS(stack_ensemble_model,"stack_ensemble_model.rds")
-saveRDS(stack_ensemble_trained,"stack_ensemble_trained.rds")
+# saveRDS(wf_knn_trained,"wf_knn_trained.rds")
+# saveRDS(wf_pls_trained,"wf_pls_trained.rds")
+# saveRDS(wf_net_trained,"wf_net_trained.rds")
+# saveRDS(wf_rfo_trained,"wf_rfo_trained.rds")
+# saveRDS(wf_xgb_trained,"wf_xgb_trained.rds")
+# saveRDS(wf_svm_trained,"wf_svm_trained.rds")
+# saveRDS(wf_mlp_trained,"wf_mlp_trained.rds")
+# #saveRDS(wf_tbn_trained,"wf_tbn_trained.rds")
+# saveRDS(stack_ensemble_model,"stack_ensemble_model.rds")
+# saveRDS(stack_ensemble_trained,"stack_ensemble_trained.rds")
 
 
 
