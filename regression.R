@@ -98,7 +98,7 @@ model_pls<- parsnip::pls(num_comp = tune(),
   set_mode("regression")
 
 
-model_net<- logistic_reg(penalty = tune(),
+model_net<- linear_reg(penalty = tune(),
                          mixture = tune()) %>%
   set_engine("glmnet") %>%
   set_mode("regression")
